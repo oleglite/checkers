@@ -8,7 +8,7 @@ from checkers.models import Checker
 
 class BoardWidget(QWidget):
     CHECKER_SIZE_TO_FIELD = 0.6
-    BORDER_SIZE = 20
+    BORDER_SIZE_TO_FIELD = 0.5
 
     def __init__(self, board, controller=None, parent=None):
         super(BoardWidget, self).__init__(parent)
@@ -26,20 +26,21 @@ class BoardWidget(QWidget):
         self._border_brush = QBrush(QColor.fromRgb(205, 127, 50))
 
         self._field_size = None
+        self._border_size = None
 
     def board_rect(self):
         rect = self.rect()
-        size = min([rect.width(), rect.height()]) - self.BORDER_SIZE * 2
-        return QRectF(self.BORDER_SIZE, self.BORDER_SIZE, size, size)
+        size = min([rect.width(), rect.height()]) - self._border_size * 2
+        return QRectF(self._border_size, self._border_size, size, size)
 
     def field_rect(self, x_field, y_field):
-        return QRectF(self.BORDER_SIZE + x_field * self._field_size,
-                      self.BORDER_SIZE + (self.board.SIZE - 1 - y_field) * self._field_size,
+        return QRectF(self._border_size + x_field * self._field_size,
+                      self._border_size + (self.board.SIZE - 1 - y_field) * self._field_size,
                       self._field_size, self._field_size)
 
     def get_field_by_point(self, point):
-        x_field = (point.x() - self.BORDER_SIZE) / self._field_size
-        y_field = self.board.SIZE - (point.y() - self.BORDER_SIZE) / self._field_size
+        x_field = (point.x() - self._border_size) / self._field_size
+        y_field = self.board.SIZE - (point.y() - self._border_size) / self._field_size
 
         if 0 <= x_field < self.board.SIZE and 0 <= y_field < self.board.SIZE:
             return int(x_field), int(y_field)
@@ -47,8 +48,10 @@ class BoardWidget(QWidget):
         return None
 
     def resizeEvent(self, event):
-        rect = self.board_rect()
-        self._field_size = min([rect.width(), rect.height()]) / float(self.board.SIZE)
+        rect = self.rect()
+        outer_size = min([rect.width(), rect.height()])
+        self._field_size = outer_size / float(self.board.SIZE + 2 * self.BORDER_SIZE_TO_FIELD)
+        self._border_size = self._field_size * self.BORDER_SIZE_TO_FIELD
 
     def mousePressEvent(self, event):
         clicked_field = self.get_field_by_point(event.pos())
@@ -77,13 +80,20 @@ class BoardWidget(QWidget):
         self._painter.fillRect(outer_rect, self._border_brush)
 
         self._painter.setPen(QPen(QBrush(Qt.black), 3))
-        self._painter.drawRect(inner_rect.adjusted(-1, -1, 0, 0))
+        self._painter.drawRect(inner_rect)
 
         labels = 'ABCDEFGHIJ'
         for i in xrange(self.board.SIZE):
-            x = self.BORDER_SIZE + i * self._field_size + self._field_size / 2.0 - self._field_size * 0.06
-            y = outer_rect.bottom() - self._field_size * 0.1
-            self._painter.drawText(x, y, labels[i])
+            # bottom labels
+            left = self._border_size + i * self._field_size
+            top = outer_rect.bottom() - self._border_size
+            text_rect = QRectF(left, top, self._field_size, self._border_size)
+            self._painter.drawText(text_rect, Qt.AlignCenter, labels[i])
+
+            # left labels
+            top = self._border_size + (self.board.SIZE - i - 1) * self._field_size
+            text_rect = QRectF(0, top, self._border_size, self._field_size)
+            self._painter.drawText(text_rect, Qt.AlignCenter, str(i + 1))
 
     def draw_fields(self):
         for x_field in xrange(self.board.SIZE):
