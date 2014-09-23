@@ -10,9 +10,10 @@ class BoardWidget(QWidget):
     CHECKER_SIZE_TO_FIELD = 0.6
     BORDER_SIZE = 20
 
-    def __init__(self, board, parent=None):
+    def __init__(self, board, controller=None, parent=None):
         super(BoardWidget, self).__init__(parent)
         self.board = board
+        self.controller = controller or CreateBoardController(board, self)
         self._painter = QPainter()
 
         self._background_brush = QBrush(Qt.gray)
@@ -36,9 +37,24 @@ class BoardWidget(QWidget):
                       self.BORDER_SIZE + (self.board.SIZE - 1 - y_field) * self._field_size,
                       self._field_size, self._field_size)
 
+    def get_field_by_point(self, point):
+        x_field = (point.x() - self.BORDER_SIZE) / self._field_size
+        y_field = self.board.SIZE - (point.y() - self.BORDER_SIZE) / self._field_size
+
+        if 0 <= x_field < self.board.SIZE and 0 <= y_field < self.board.SIZE:
+            return int(x_field), int(y_field)
+
+        return None
+
     def resizeEvent(self, event):
         rect = self.board_rect()
         self._field_size = min([rect.width(), rect.height()]) / float(self.board.SIZE)
+
+    def mousePressEvent(self, event):
+        clicked_field = self.get_field_by_point(event.pos())
+        if clicked_field:
+            self.controller.field_clicked(clicked_field[0], clicked_field[1], event.button())
+        return super(BoardWidget, self).mousePressEvent(event)
 
     def paintEvent(self, event):
         self._painter.begin(self)
@@ -46,7 +62,7 @@ class BoardWidget(QWidget):
         self.draw_background()
         self.draw_border()
         self.draw_fields()
-        # self.draw_checkers()
+        self.draw_checkers()
 
         self._painter.end()
 
@@ -76,7 +92,10 @@ class BoardWidget(QWidget):
                     brush = self._black_field_brush
                 else:
                     brush = self._white_field_brush
-                self._painter.fillRect(self.field_rect(x_field, y_field), brush)
+                self.draw_field(x_field, y_field, brush)
+
+    def draw_field(self, x_field, y_field, brush):
+        self._painter.fillRect(self.field_rect(x_field, y_field), brush)
 
     def draw_checkers(self):
         for checker in self.board.checkers:
@@ -92,3 +111,21 @@ class BoardWidget(QWidget):
             field_rect = self.field_rect(checker.x, checker.y)
             radius = self._field_size / 2.0 * self.CHECKER_SIZE_TO_FIELD
             self._painter.drawEllipse(field_rect.center(), radius, radius)
+
+
+class CreateBoardController(object):
+    def __init__(self, board, widget):
+        self.board = board
+        self.widget = widget
+
+    def field_clicked(self, x_field, y_field, button):
+        if self.board.get_checker_in_position(x_field, y_field):
+            pass
+
+        if button == Qt.LeftButton:
+            self.board.checkers.append(Checker(Checker.WHITE, x_field, y_field))
+        elif button == Qt.RightButton:
+            self.board.checkers.append(Checker(Checker.BLACK, x_field, y_field))
+
+        self.widget.repaint()
+
