@@ -4,12 +4,65 @@
 https://ru.wikipedia.org/wiki/%D0%A0%D1%83%D1%81%D1%81%D0%BA%D0%B8%D0%B5_%D1%88%D0%B0%D1%88%D0%BA%D0%B8
 """
 
+import json
+
+
+class BoardError(Exception):
+    """
+    Something wrong with board
+    """
+
+
+def field_verbose(x, y):
+    return "abcdefghij"[x] + str(y+1)
+
+
+def save_board(board):
+    board_data = [
+        {
+            'color': checker.color,
+            'x': checker.x,
+            'y': checker.y,
+        }
+        for checker in board.checkers
+    ]
+    return json.dumps(board_data)
+
+
+def load_board(board_json):
+    board = Board()
+    for checker_data in json.loads(board_json):
+        color = checker_data['color']
+        x = checker_data['x']
+        y = checker_data['y']
+
+        if not Board.is_valid_field(x, y) or not color in [Checker.WHITE, Checker.BLACK]:
+            raise ValueError(checker_data)
+
+        board.add_checker(Checker(color, x, y))
+
+    return board
+
 
 class Board(object):
     SIZE = 8
 
-    def __init__(self, checkers):
-        self.checkers = checkers
+    def __init__(self, checkers=()):
+        self.checkers = list(checkers)
+
+    def add_checker(self, checker, safe=True):
+        if safe:
+            if not self.is_valid_field(checker.x ,checker.y):
+                raise BoardError("Invalid checker position: (%d, %d)." % (checker.x, checker.y))
+
+            if self.get_checker_in_position(checker.x, checker.y):
+                raise BoardError("Checker in %s already exists." % field_verbose(checker.x, checker.y))
+
+        self.checkers.append(checker)
+
+    def remove_checker(self, checker):
+        if checker in self.checkers:
+            self.checkers.remove(checker)
 
     def get_checker_in_position(self, x, y):
         for checker in self.checkers:
@@ -19,6 +72,10 @@ class Board(object):
 
     def is_black_field(self, x, y):
         return (x + y + 1) % 2
+
+    @classmethod
+    def is_valid_field(cls, x, y):
+        return 0 <= x < cls.SIZE and 0 <= y < cls.SIZE
 
 
 class Move(object):
@@ -37,7 +94,7 @@ class BoardManager(object):
         self.board = board
 
     def get_move(self, checker, x, y):
-        if not (0 <= x <= 7 and 0 <= y <= 7):
+        if not self.board.is_valid_field(x, y):
             return Move(Move.Type.WRONG)
 
         if self.board.get_checker_in_position(x, y) or not self.board.is_black_field(x, y):
@@ -86,6 +143,8 @@ class Checker(object):
     WHITE = 'white'
 
     def __init__(self, color, x, y):
+        assert color == self.BLACK or color == self.WHITE
+
         self.x = x
         self.y = y
         self.color = color
@@ -97,3 +156,6 @@ class Checker(object):
 
     def make_king(self):
         self.is_king = True
+
+    def __str__(self):
+        return "%s checker in %s".capitalize() % (self.color, field_verbose(self.x, self.y))
