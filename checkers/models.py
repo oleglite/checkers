@@ -18,7 +18,7 @@ def field_verbose(x, y):
 
 
 def save_board(board):
-    board_data = [
+    checkers = [
         {
             'color': checker.color,
             'x': checker.x,
@@ -26,12 +26,15 @@ def save_board(board):
         }
         for checker in board.checkers
     ]
-    return json.dumps(board_data)
+    board_data = {
+        'checkers': checkers,
+    }
+    return json.dumps(board_data, indent=4)
 
 
 def load_board(board_json):
     board = Board()
-    for checker_data in json.loads(board_json):
+    for checker_data in json.loads(board_json)['checkers']:
         color = checker_data['color']
         x = checker_data['x']
         y = checker_data['y']
@@ -47,16 +50,15 @@ def load_board(board_json):
 class Board(object):
     SIZE = 8
 
-    def __init__(self, checkers=()):
-        self.checkers = list(checkers)
+    def __init__(self):
+        self.checkers = []
 
-    def add_checker(self, checker, safe=True):
-        if safe:
-            if not self.is_valid_field(checker.x ,checker.y):
-                raise BoardError("Invalid checker position: (%d, %d)." % (checker.x, checker.y))
+    def add_checker(self, checker):
+        if not self.is_valid_field(checker.x ,checker.y):
+            raise BoardError("Invalid checker position: (%d, %d)." % (checker.x, checker.y))
 
-            if self.get_checker_in_position(checker.x, checker.y):
-                raise BoardError("Checker in %s already exists." % field_verbose(checker.x, checker.y))
+        if self.get_checker_in_position(checker.x, checker.y):
+            raise BoardError("Checker in %s already exists." % field_verbose(checker.x, checker.y))
 
         self.checkers.append(checker)
 
@@ -70,12 +72,13 @@ class Board(object):
                 return checker
         return None
 
-    def is_black_field(self, x, y):
+    @staticmethod
+    def is_black_field(x, y):
         return (x + y + 1) % 2
 
     @classmethod
     def is_valid_field(cls, x, y):
-        return 0 <= x < cls.SIZE and 0 <= y < cls.SIZE
+        return cls.is_black_field(x, y) and 0 <= x < cls.SIZE and 0 <= y < cls.SIZE
 
 
 class Move(object):

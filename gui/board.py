@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from PySide.QtCore import Qt, QRectF
-from PySide.QtGui import QWidget, QPainter, QBrush, QPen, QColor
+from qt import Qt, QRectF, QWidget, QPainter, QBrush, QPen, QColor
 
 from checkers.models import Checker
 
@@ -129,13 +128,16 @@ class CreateBoardController(object):
         self.widget = widget
 
     def field_clicked(self, x_field, y_field, button):
-        if self.board.get_checker_in_position(x_field, y_field):
-            pass
+        if self.board.get_checker_in_position(x_field, y_field) or not self.board.is_black_field(x_field, y_field):
+            return
 
         if button == Qt.LeftButton:
-            self.board.checkers.append(Checker(Checker.WHITE, x_field, y_field))
-        elif button == Qt.RightButton:
-            self.board.checkers.append(Checker(Checker.BLACK, x_field, y_field))
+            color = Checker.WHITE
+        else:
+            color = Checker.BLACK
+
+        checker = Checker(color, x_field, y_field)
+        self.board.add_checker(checker)
 
         self.widget.repaint()
 
