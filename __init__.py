@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
 
-from checkers.models import Board, load_board
+from checkers.models import Board
 from gui import qt_application, Window, BoardWidget
 
 
 def main():
-    with open('./boards/default.json') as f:
-        board = load_board(f.read())
+    board = Board()
 
     with qt_application():
         window = Window()
