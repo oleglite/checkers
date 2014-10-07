@@ -37,6 +37,9 @@ class WindowController(QObject):
 
     def process_open(self):
         file_name, _ = QFileDialog.getOpenFileName(dir='boards')
+        if not file_name:
+            return
+
         with open(file_name) as f:
             board = load_board(f.read())
             self.window.set_board_widget(BoardWidget(board))
@@ -45,7 +48,3 @@ class WindowController(QObject):
         file_name, _ = QFileDialog.getSaveFileName(dir='boards')
         with open(file_name, 'w') as f:
             f.write(save_board(self.window.board_widget.board))
-
-
-
-

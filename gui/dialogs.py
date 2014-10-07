@@ -1,22 +1,27 @@
 # -*- coding: utf-8 -*-
 
-from qt import QDialog, QPushButton, QButtonGroup, QVBoxLayout
+from qt import QDialog, QPushButton, QButtonGroup, QVBoxLayout, QLabel
 
 
-def show_dialog(buttons):
-    dialog = Dialog(buttons)
+def show_dialog(buttons, message='', title=''):
+    CANCEL = 'Cancel'
+    dialog = Dialog(buttons + [CANCEL], message, title)
     result_id = dialog.exec_()
     result_name = dialog.get_button_name(result_id)
+    if result_name == CANCEL:
+        return None
     return result_name
 
 
 class Dialog(QDialog):
-    def __init__(self, buttons):
+    def __init__(self, buttons, message='', title=''):
         super(Dialog, self).__init__()
 
-        self.buttons = buttons
+        if title:
+            self.setWindowTitle(title)
 
-        self.layout = QVBoxLayout()
+        self.buttons = buttons
+        self.message_label = QLabel(message)
 
         self.buttons_layout = QVBoxLayout()
         self.button_group = QButtonGroup(self)
@@ -25,6 +30,8 @@ class Dialog(QDialog):
             self.button_group.addButton(button, i)
             self.buttons_layout.addWidget(button)
 
+        self.layout = QVBoxLayout()
+        self.layout.addWidget(self.message_label)
         self.layout.addLayout(self.buttons_layout)
         self.setLayout(self.layout)
 

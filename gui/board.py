@@ -3,6 +3,7 @@
 from qt import Qt, QRectF, QWidget, QPainter, QBrush, QPen, QColor
 
 from checkers.models import Checker
+from gui.dialogs import show_dialog
 
 
 class BoardWidget(QWidget):
@@ -13,12 +14,15 @@ class BoardWidget(QWidget):
         super(BoardWidget, self).__init__(parent)
         self.board = board
         self.controller = controller or CreateBoardController(board, self)
+
+        self._selected_field = None     # (x_field, y_field) or None
         self._painter = QPainter()
 
         self._background_brush = QBrush(Qt.gray)
         self._white_field_brush = QBrush(Qt.white)
         self._black_field_brush = QBrush(Qt.black)
         self._white_checker_brush = QBrush(Qt.white)
+        self._selected_field_brush = QBrush(Qt.green)
         self._black_checker_brush = QBrush(Qt.black)
         self._white_checker_pen = QPen(QBrush(Qt.gray), 4, j=Qt.RoundJoin)
         self._black_checker_pen = QPen(QBrush(Qt.gray), 4, j=Qt.RoundJoin)
@@ -26,6 +30,11 @@ class BoardWidget(QWidget):
 
         self._field_size = None
         self._border_size = None
+
+    def set_selected_field(self, field):
+        assert len(field) == 2 or field is None
+
+        self._selected_field = field
 
     def board_rect(self):
         rect = self.rect()
@@ -97,7 +106,9 @@ class BoardWidget(QWidget):
     def draw_fields(self):
         for x_field in xrange(self.board.SIZE):
             for y_field in xrange(self.board.SIZE):
-                if self.board.is_black_field(x_field, y_field):
+                if (x_field, y_field) == self._selected_field:
+                    brush = self._selected_field_brush
+                elif self.board.is_black_field(x_field, y_field):
                     brush = self._black_field_brush
                 else:
                     brush = self._white_field_brush
@@ -122,22 +133,40 @@ class BoardWidget(QWidget):
             self._painter.drawEllipse(field_rect.center(), radius, radius)
 
 
-class CreateBoardController(object):
+class BoardController(object):
     def __init__(self, board, widget):
         self.board = board
         self.widget = widget
+        self._selected_field = None
 
     def field_clicked(self, x_field, y_field, button):
-        if self.board.get_checker_in_position(x_field, y_field) or not self.board.is_black_field(x_field, y_field):
+        if not self.board.is_black_field(x_field, y_field):
+            # TODO: show notification
             return
 
         if button == Qt.LeftButton:
-            color = Checker.WHITE
-        else:
-            color = Checker.BLACK
+            # if not self._selected_field:
+                self.select_field(x_field, y_field)
 
-        checker = Checker(color, x_field, y_field)
-        self.board.add_checker(checker)
-
+        self._field_clicked(x_field, y_field, button)
         self.widget.repaint()
+
+    def _field_clicked(self, x_field, y_field, button):
+        """
+        Implement in subclussed if needed
+        """
+
+    def select_field(self, x_field, y_field):
+        self._selected_field = (x_field, y_field)
+        self.widget.set_selected_field(self._selected_field)
+
+
+class CreateBoardController(BoardController):
+    def _field_clicked(self, x_field, y_field, button):
+        if button == Qt.RightButton and not self.board.get_checker_in_position(x_field, y_field):
+            buttons = [Checker.WHITE.capitalize(), Checker.BLACK.capitalize()]
+            color = show_dialog(buttons, message='Choose checker color:', title='Adding checker')
+            if color:
+                checker = Checker(color, x_field, y_field)
+                self.board.add_checker(checker)
 
