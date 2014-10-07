@@ -16,6 +16,7 @@ class BoardWidget(QWidget):
         self.controller = controller or CreateBoardController(board, self)
 
         self._selected_field = None     # (x_field, y_field) or None
+        self._available_moves = []      # [(x_field, y_field), ...] or None
         self._painter = QPainter()
 
         self._background_brush = QBrush(Qt.gray)
@@ -23,6 +24,7 @@ class BoardWidget(QWidget):
         self._black_field_brush = QBrush(Qt.black)
         self._white_checker_brush = QBrush(Qt.white)
         self._selected_field_brush = QBrush(Qt.green)
+        self._available_move_field_brush = QBrush(Qt.green)
         self._black_checker_brush = QBrush(Qt.black)
         self._white_checker_pen = QPen(QBrush(Qt.gray), 4, j=Qt.RoundJoin)
         self._black_checker_pen = QPen(QBrush(Qt.gray), 4, j=Qt.RoundJoin)
@@ -35,6 +37,14 @@ class BoardWidget(QWidget):
         assert len(field) == 2 or field is None
 
         self._selected_field = field
+
+    def set_available_moves(self, fields):
+        assert all(len(field) == 2 for field in fields) or fields is None
+
+        if not fields:
+            self._available_moves = []
+
+        self._available_moves = fields
 
     def board_rect(self):
         rect = self.rect()
@@ -108,6 +118,8 @@ class BoardWidget(QWidget):
             for y_field in xrange(self.board.SIZE):
                 if (x_field, y_field) == self._selected_field:
                     brush = self._selected_field_brush
+                elif (x_field, y_field) in self._available_moves:
+                    brush = self._available_move_field_brush
                 elif self.board.is_black_field(x_field, y_field):
                     brush = self._black_field_brush
                 else:

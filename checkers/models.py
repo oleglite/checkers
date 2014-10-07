@@ -88,7 +88,7 @@ class Move(object):
         KICK = 2
 
     def __init__(self, move_type, victim=None):
-        self.move_type = move_type
+        self.type = move_type
         self.victim = victim
 
 
@@ -139,6 +139,15 @@ class BoardManager(object):
                 return Move(Move.Type.MOVE)
 
             return Move(Move.Type.WRONG)
+
+    def get_available_moves(self, checker):
+        available_moves = []
+        for x in xrange(self.board.SIZE):
+            for y in xrange(self.board.SIZE):
+                move = self.get_move(checker, x, y)
+                if move.type:
+                    available_moves.append((x, y))
+        return available_moves
 
 
 class Checker(object):
