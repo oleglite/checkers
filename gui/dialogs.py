@@ -3,8 +3,15 @@
 from qt import QDialog, QPushButton, QButtonGroup, QVBoxLayout
 
 
+def show_dialog(buttons):
+    dialog = Dialog(buttons)
+    result_id = dialog.exec_()
+    result_name = dialog.get_button_name(result_id)
+    return result_name
+
+
 class Dialog(QDialog):
-    def __init__(self, buttons, parent=None):
+    def __init__(self, buttons):
         super(Dialog, self).__init__()
 
         self.buttons = buttons
@@ -24,7 +31,7 @@ class Dialog(QDialog):
         self.button_group.buttonClicked.connect(self.button_clicked_slot)
 
     def button_clicked_slot(self, button):
-        print self.get_button_name(button)
+        self.done(self.button_group.id(button))
 
-    def get_button_name(self, button):
-        return self.buttons[self.button_group.id(button) - 1]
+    def get_button_name(self, button_id):
+        return self.buttons[button_id - 1]

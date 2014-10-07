@@ -4,7 +4,7 @@ from qt import QObject, QMainWindow, QFileDialog
 
 from checkers.models import load_board, save_board
 from gui.board import BoardWidget
-from gui.dialogs import Dialog
+from gui.dialogs import show_dialog
 from gui.ui.mainwindow import Ui_MainWindow
 
 
@@ -36,10 +36,6 @@ class WindowController(QObject):
         self.window = window
 
     def process_open(self):
-
-        d = Dialog(['a', 'b', 'c'], self)
-        d.exec_()
-
         file_name, _ = QFileDialog.getOpenFileName(dir='boards')
         with open(file_name) as f:
             board = load_board(f.read())
