@@ -2,7 +2,7 @@
 
 from qt import QObject, QMainWindow, QFileDialog
 
-from checkers.models import load_board_from_file, save_board
+from checkers import load_board_from_file, save_board
 from gui.board import BoardWidget
 from gui.ui.mainwindow import Ui_MainWindow
 

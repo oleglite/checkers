@@ -3,7 +3,7 @@
 from qt import Qt, QRectF, QWidget, QPainter, QBrush, QPen, QColor
 
 import settings
-from checkers.models import Checker
+from checkers import Checker
 from gui.dialogs import show_dialog
 
 

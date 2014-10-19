@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from checkers.models import Board, BoardManager, load_board_from_file
+from checkers import Board, BoardManager, load_board_from_file
 from gui import qt_application, Window, create_board_widget
 
 

@@ -4,8 +4,6 @@
 https://ru.wikipedia.org/wiki/%D0%A0%D1%83%D1%81%D1%81%D0%BA%D0%B8%D0%B5_%D1%88%D0%B0%D1%88%D0%BA%D0%B8
 """
 
-import json
-
 
 class BoardError(Exception):
     """
@@ -15,42 +13,6 @@ class BoardError(Exception):
 
 def field_verbose(x, y):
     return "abcdefghij"[x] + str(y+1)
-
-
-def save_board(board):
-    checkers = [
-        {
-            'color': checker.color,
-            'x': checker.x,
-            'y': checker.y,
-        }
-        for checker in board.checkers
-    ]
-    board_data = {
-        'checkers': checkers,
-    }
-    return json.dumps(board_data, indent=4)
-
-
-def load_board(board_json):
-    board = Board()
-    for checker_data in json.loads(board_json)['checkers']:
-        color = checker_data['color']
-        x = checker_data['x']
-        y = checker_data['y']
-
-        if not Board.is_valid_field(x, y) or not color in [Checker.WHITE, Checker.BLACK]:
-            raise ValueError(checker_data)
-
-        board.add_checker(Checker(color, x, y))
-
-    return board
-
-
-def load_board_from_file(file_name):
-    with open(file_name) as f:
-        board = load_board(f.read())
-    return board
 
 
 class Board(object):
