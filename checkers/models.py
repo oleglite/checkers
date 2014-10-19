@@ -47,6 +47,12 @@ def load_board(board_json):
     return board
 
 
+def load_board_from_file(file_name):
+    with open(file_name) as f:
+        board = load_board(f.read())
+    return board
+
+
 class Board(object):
     SIZE = 8
 
@@ -108,7 +114,7 @@ class BoardManager(object):
         x_direction = 1 if dx > 0 else -1
         y_direction = 1 if dy > 0 else -1
 
-        if checker.is_king():
+        if checker.is_king:
             if abs(dx) != abs(dy):
                 return Move(Move.Type.WRONG)
 

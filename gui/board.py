@@ -2,8 +2,23 @@
 
 from qt import Qt, QRectF, QWidget, QPainter, QBrush, QPen, QColor
 
+import settings
 from checkers.models import Checker
 from gui.dialogs import show_dialog
+
+
+def create_board_widget(board, board_manager):
+    widget = BoardWidget(board)
+
+    if settings.EDITOR_MODE:
+        controller_cls = CreateBoardController
+    else:
+        controller_cls = BoardController
+
+    controller = controller_cls(board, board_manager, widget)
+
+    widget.set_controller(controller)
+    return widget
 
 
 class BoardWidget(QWidget):
@@ -13,7 +28,7 @@ class BoardWidget(QWidget):
     def __init__(self, board, controller=None, parent=None):
         super(BoardWidget, self).__init__(parent)
         self.board = board
-        self.controller = controller or CreateBoardController(board, self)
+        self.controller = controller
 
         self._selected_field = None     # (x_field, y_field) or None
         self._available_moves = []      # [(x_field, y_field), ...] or None
@@ -23,7 +38,7 @@ class BoardWidget(QWidget):
         self._white_field_brush = QBrush(Qt.white)
         self._black_field_brush = QBrush(Qt.black)
         self._white_checker_brush = QBrush(Qt.white)
-        self._selected_field_brush = QBrush(Qt.green)
+        self._selected_field_brush = QBrush(Qt.blue)
         self._available_move_field_brush = QBrush(Qt.green)
         self._black_checker_brush = QBrush(Qt.black)
         self._white_checker_pen = QPen(QBrush(Qt.gray), 4, j=Qt.RoundJoin)
@@ -33,8 +48,11 @@ class BoardWidget(QWidget):
         self._field_size = None
         self._border_size = None
 
+    def set_controller(self, controller):
+        self.controller = controller
+
     def set_selected_field(self, field):
-        assert len(field) == 2 or field is None
+        assert field is None or len(field) == 2
 
         self._selected_field = field
 
@@ -73,7 +91,7 @@ class BoardWidget(QWidget):
 
     def mousePressEvent(self, event):
         clicked_field = self.get_field_by_point(event.pos())
-        if clicked_field:
+        if clicked_field and self.controller:
             self.controller.field_clicked(clicked_field[0], clicked_field[1], event.button())
         return super(BoardWidget, self).mousePressEvent(event)
 
@@ -146,8 +164,9 @@ class BoardWidget(QWidget):
 
 
 class BoardController(object):
-    def __init__(self, board, widget):
+    def __init__(self, board, board_manager, widget):
         self.board = board
+        self.board_manager = board_manager
         self.widget = widget
         self._selected_field = None
 
@@ -156,29 +175,47 @@ class BoardController(object):
             # TODO: show notification
             return
 
-        if button == Qt.LeftButton:
-            # if not self._selected_field:
-                self.select_field(x_field, y_field)
+        clicked_field = (x_field, y_field)
 
-        self._field_clicked(x_field, y_field, button)
+        if button == Qt.LeftButton:
+            self.select_field(clicked_field)
+
+        self._field_clicked(clicked_field, button)
         self.widget.repaint()
 
-    def _field_clicked(self, x_field, y_field, button):
+    def _field_clicked(self, clicked_field, button):
         """
         Implement in subclussed if needed
         """
 
-    def select_field(self, x_field, y_field):
-        self._selected_field = (x_field, y_field)
+    def select_field(self, new_selected_field):
+        self._selected_field = new_selected_field
         self.widget.set_selected_field(self._selected_field)
+        self.update_available_moves()
+
+    def clear_selection(self):
+        self._selected_field = None
+        self.widget.set_available_moves(())
+
+    def update_available_moves(self):
+        selected_checker = self.board.get_checker_in_position(*self._selected_field)
+        if selected_checker:
+            available_moves = self.board_manager.get_available_moves(selected_checker)
+        else:
+            available_moves = ()
+
+        self.widget.set_available_moves(available_moves)
 
 
 class CreateBoardController(BoardController):
-    def _field_clicked(self, x_field, y_field, button):
-        if button == Qt.RightButton and not self.board.get_checker_in_position(x_field, y_field):
-            buttons = [Checker.WHITE.capitalize(), Checker.BLACK.capitalize()]
-            color = show_dialog(buttons, message='Choose checker color:', title='Adding checker')
+    def _field_clicked(self, clicked_field, button):
+        if button == Qt.RightButton and not self.board.get_checker_in_position(*clicked_field):
+            button_values = [Checker.WHITE, Checker.BLACK]
+            button_names = [name.capitalize() for name in button_values]
+            color = show_dialog(button_names, button_values, message='Choose checker color:', title='Adding checker')
             if color:
-                checker = Checker(color, x_field, y_field)
+                checker = Checker(color, *clicked_field)
                 self.board.add_checker(checker)
+                if self._selected_field:
+                    self.update_available_moves()
 

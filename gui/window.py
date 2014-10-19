@@ -2,9 +2,8 @@
 
 from qt import QObject, QMainWindow, QFileDialog
 
-from checkers.models import load_board, save_board
+from checkers.models import load_board_from_file, save_board
 from gui.board import BoardWidget
-from gui.dialogs import show_dialog
 from gui.ui.mainwindow import Ui_MainWindow
 
 
@@ -40,9 +39,8 @@ class WindowController(QObject):
         if not file_name:
             return
 
-        with open(file_name) as f:
-            board = load_board(f.read())
-            self.window.set_board_widget(BoardWidget(board))
+        board = load_board_from_file(file_name)
+        self.window.set_board_widget(BoardWidget(board))
 
     def process_save(self):
         file_name, _ = QFileDialog.getSaveFileName(dir='boards')
