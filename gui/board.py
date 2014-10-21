@@ -40,11 +40,15 @@ class BoardWidget(QWidget):
         self._white_field_brush = QBrush(Qt.white)
         self._black_field_brush = QBrush(Qt.black)
         self._white_checker_brush = QBrush(Qt.white)
+        self._white_king_checker_brush = QBrush(Qt.white)
         self._selected_field_brush = QBrush(Qt.blue)
         self._available_move_field_brush = QBrush(Qt.green)
         self._black_checker_brush = QBrush(Qt.black)
+        self._black_king_checker_brush = QBrush(Qt.black)
         self._white_checker_pen = QPen(QBrush(Qt.gray), 4, j=Qt.RoundJoin)
         self._black_checker_pen = QPen(QBrush(Qt.gray), 4, j=Qt.RoundJoin)
+        self._white_king_checker_pen = QPen(QBrush(QColor.fromRgb(210, 30, 15)), 4, j=Qt.RoundJoin)
+        self._black_king_checker_pen = QPen(QBrush(QColor.fromRgb(210, 30, 15)), 4, j=Qt.RoundJoin)
         self._border_brush = QBrush(QColor.fromRgb(205, 127, 50))
 
         self._field_size = None
@@ -152,11 +156,19 @@ class BoardWidget(QWidget):
     def draw_checkers(self):
         for checker in self.board.checkers:
             if checker.color == Checker.BLACK:
-                brush = self._black_checker_brush
-                pen = self._black_checker_pen
+                if checker.is_king:
+                    brush = self._black_king_checker_brush
+                    pen = self._black_king_checker_pen
+                else:
+                    brush = self._black_checker_brush
+                    pen = self._black_checker_pen
             else:
-                brush = self._white_checker_brush
-                pen = self._white_checker_pen
+                if checker.is_king:
+                    brush = self._white_king_checker_brush
+                    pen = self._white_king_checker_pen
+                else:
+                    brush = self._white_checker_brush
+                    pen = self._white_checker_pen
 
             self._painter.setBrush(brush)
             self._painter.setPen(pen)
@@ -200,6 +212,10 @@ class BoardController(QObject):
         self.widget.set_available_moves(())
 
     def update_available_moves(self):
+        if not self._selected_field:
+            self.widget.set_available_moves(())
+            return
+
         selected_checker = self.board.get_checker_in_position(*self._selected_field)
         if selected_checker:
             available_moves = get_available_moves(self.board, selected_checker)
