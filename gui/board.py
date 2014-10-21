@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from qt import Qt, QRectF, QWidget, QPainter, QBrush, QPen, QColor
+from qt import Qt, QRectF, QWidget, QPainter, QBrush, QPen, QColor, Signal, QObject
 
 import settings
 from checkers.logic import get_available_moves
@@ -18,7 +18,7 @@ def create_board_widget(board):
 
     controller = controller_cls(board, widget)
 
-    widget.set_controller(controller)
+    widget.field_clicked.connect(controller.process_field_clicked)
     return widget
 
 
@@ -26,10 +26,11 @@ class BoardWidget(QWidget):
     CHECKER_SIZE_TO_FIELD = 0.6
     BORDER_SIZE_TO_FIELD = 0.5
 
-    def __init__(self, board, controller=None, parent=None):
+    field_clicked = Signal(int, int, int)   # button, x, y
+
+    def __init__(self, board, parent=None):
         super(BoardWidget, self).__init__(parent)
         self.board = board
-        self.controller = controller
 
         self._selected_field = None     # (x_field, y_field) or None
         self._available_moves = []      # [(x_field, y_field), ...] or None
@@ -92,8 +93,8 @@ class BoardWidget(QWidget):
 
     def mousePressEvent(self, event):
         clicked_field = self.get_field_by_point(event.pos())
-        if clicked_field and self.controller:
-            self.controller.field_clicked(clicked_field[0], clicked_field[1], event.button())
+        if clicked_field:
+            self.field_clicked.emit(int(event.button()), clicked_field[0], clicked_field[1])
         return super(BoardWidget, self).mousePressEvent(event)
 
     def paintEvent(self, event):
@@ -164,13 +165,14 @@ class BoardWidget(QWidget):
             self._painter.drawEllipse(field_rect.center(), radius, radius)
 
 
-class BoardController(object):
+class BoardController(QObject):
     def __init__(self, board, widget):
+        super(BoardController, self).__init__(widget)
         self.board = board
         self.widget = widget
         self._selected_field = None
 
-    def field_clicked(self, x_field, y_field, button):
+    def process_field_clicked(self, button, x_field, y_field):
         if not self.board.is_black_field(x_field, y_field):
             # TODO: show notification
             return
@@ -180,10 +182,10 @@ class BoardController(object):
         if button == Qt.LeftButton:
             self.select_field(clicked_field)
 
-        self._field_clicked(clicked_field, button)
+        self._field_clicked(button, clicked_field)
         self.widget.repaint()
 
-    def _field_clicked(self, clicked_field, button):
+    def _field_clicked(self, button, clicked_field):
         """
         Implement in subclussed if needed
         """
@@ -208,14 +210,27 @@ class BoardController(object):
 
 
 class CreateBoardController(BoardController):
-    def _field_clicked(self, clicked_field, button):
-        if button == Qt.RightButton and not self.board.get_checker_in_position(*clicked_field):
-            button_values = [Checker.WHITE, Checker.BLACK]
-            button_names = [name.capitalize() for name in button_values]
-            color = show_dialog(button_names, button_values, message='Choose checker color:', title='Adding checker')
-            if color:
-                checker = Checker(color, *clicked_field)
-                self.board.add_checker(checker)
-                if self._selected_field:
-                    self.update_available_moves()
+    MAKE_KING = 'Make king'
+    MAKE_NOT_KING = 'Make not king'
+
+    def _field_clicked(self, button, clicked_field):
+        if button == Qt.RightButton:
+            checker = self.board.get_checker_in_position(*clicked_field)
+            if checker:
+                action = self.MAKE_NOT_KING if checker.is_king else self.MAKE_KING
+                answer = show_dialog([action], message='Chose action:', title='Editing checker')
+                if answer == self.MAKE_KING:
+                    checker.make_king()
+                elif answer == self.MAKE_NOT_KING:
+                    checker.is_king = False
+            else:
+                button_values = [Checker.WHITE, Checker.BLACK]
+                button_names = [name.capitalize() for name in button_values]
+                color = show_dialog(button_names, button_values, message='Choose checker color:', title='Adding checker')
+                if color:
+                    checker = Checker(color, *clicked_field)
+                    self.board.add_checker(checker)
+
+            self.update_available_moves()
+
 
