@@ -3,11 +3,12 @@
 from qt import Qt, QRectF, QWidget, QPainter, QBrush, QPen, QColor
 
 import settings
+from checkers.logic import get_available_moves
 from checkers.models import Checker
 from gui.dialogs import show_dialog
 
 
-def create_board_widget(board, board_manager):
+def create_board_widget(board):
     widget = BoardWidget(board)
 
     if settings.EDITOR_MODE:
@@ -15,7 +16,7 @@ def create_board_widget(board, board_manager):
     else:
         controller_cls = BoardController
 
-    controller = controller_cls(board, board_manager, widget)
+    controller = controller_cls(board, widget)
 
     widget.set_controller(controller)
     return widget
@@ -164,9 +165,8 @@ class BoardWidget(QWidget):
 
 
 class BoardController(object):
-    def __init__(self, board, board_manager, widget):
+    def __init__(self, board, widget):
         self.board = board
-        self.board_manager = board_manager
         self.widget = widget
         self._selected_field = None
 
@@ -200,7 +200,7 @@ class BoardController(object):
     def update_available_moves(self):
         selected_checker = self.board.get_checker_in_position(*self._selected_field)
         if selected_checker:
-            available_moves = self.board_manager.get_available_moves(selected_checker)
+            available_moves = get_available_moves(self.board, selected_checker)
         else:
             available_moves = ()
 

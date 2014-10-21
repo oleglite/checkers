@@ -21,7 +21,6 @@ class Game(object):
         else:
             self.board = Board()
 
-        self.board_manager = BoardManager(self.board)
         self.white_player = Player(self, Checker.WHITE)
         self.black_player = Player(self, Checker.BLACK)
 
@@ -38,7 +37,7 @@ class Game(object):
         if checker.color != player.color:
             raise GameError("You can't move this checker.")
 
-        move = self.board_manager.get_move(checker, x, y)
+        move = get_move(self.board, checker, x, y)
         if move.type == Move.TYPE.WRONG:
             raise GameError("You can't move checker to this field.")
 
@@ -51,7 +50,7 @@ class Game(object):
             self.board.move_checker(checker, x, y)
             self.board.remove_checker(move.victim)
             self.check_become_king(checker)
-            available_moves = self.board_manager.get_available_moves(checker)
+            available_moves = get_available_moves(self.board, checker)
             can_kick_again = any(move.type == Move.TYPE.KICK for move in available_moves)
             if not can_kick_again:
                 self.change_current_player()
@@ -62,7 +61,7 @@ class Game(object):
         if checker.is_king:
             return False
 
-        if self.board_manager.is_king_line(checker.color, checker.y):
+        if is_king_line(self.board, checker.color, checker.y):
             checker.make_king()
 
         return False
@@ -97,65 +96,63 @@ class Move(object):
         self.victim = victim
 
 
-class BoardManager(object):
-    def __init__(self, board):
-        self.board = board
+def get_move(board, checker, x, y):
+    if not board.is_valid_field(x, y):
+        return Move(Move.TYPE.WRONG)
 
-    def get_move(self, checker, x, y):
-        if not self.board.is_valid_field(x, y):
+    if board.get_checker_in_position(x, y) or not board.is_black_field(x, y):
+        return Move(Move.TYPE.WRONG)
+
+    dx = x - checker.x
+    dy = y - checker.y
+    x_direction = 1 if dx > 0 else -1
+    y_direction = 1 if dy > 0 else -1
+
+    if checker.is_king:
+        if abs(dx) != abs(dy):
             return Move(Move.TYPE.WRONG)
 
-        if self.board.get_checker_in_position(x, y) or not self.board.is_black_field(x, y):
+        victims = []
+        for i in xrange(1, abs(dx)):
+            victim = board.get_checker_in_position(checker.x + i * x_direction, checker.y + i * y_direction)
+            if victim:
+                victims.append(victim)
+
+        if len(victims) == 1:
+            return Move(Move.TYPE.KICK, victims[0])
+
+        return Move(Move.TYPE.MOVE)
+
+    else:
+        # kick
+        if abs(dx) == abs(dy) == 2:
+            victim = board.get_checker_in_position(checker.x + x_direction, checker.y + y_direction)
+            if victim and victim.color != checker.color:
+                return Move(Move.TYPE.KICK, victim)
+
+        # check direction
+        if checker.color == Checker.WHITE and dy < 0 or checker.color == Checker.BLACK and dy > 0:
             return Move(Move.TYPE.WRONG)
 
-        dx = x - checker.x
-        dy = y - checker.y
-        x_direction = 1 if dx > 0 else -1
-        y_direction = 1 if dy > 0 else -1
-
-        if checker.is_king:
-            if abs(dx) != abs(dy):
-                return Move(Move.TYPE.WRONG)
-
-            victims = []
-            for i in xrange(1, abs(dx)):
-                victim = self.board.get_checker_in_position(checker.x + i * x_direction, checker.y + i * y_direction)
-                if victim:
-                    victims.append(victim)
-
-            if len(victims) == 1:
-                return Move(Move.TYPE.KICK, victims[0])
-
+        # move forward
+        if abs(dx) == abs(dy) == 1:
             return Move(Move.TYPE.MOVE)
 
-        else:
-            # kick
-            if abs(dx) == abs(dy) == 2:
-                victim = self.board.get_checker_in_position(checker.x + x_direction, checker.y + y_direction)
-                if victim and victim.color != checker.color:
-                    return Move(Move.TYPE.KICK, victim)
+        return Move(Move.TYPE.WRONG)
 
-            # check direction
-            if checker.color == Checker.WHITE and dy < 0 or checker.color == Checker.BLACK and dy > 0:
-                return Move(Move.TYPE.WRONG)
 
-            # move forward
-            if abs(dx) == abs(dy) == 1:
-                return Move(Move.TYPE.MOVE)
+def get_available_moves(board, checker):
+    available_moves = []
+    for x in xrange(board.SIZE):
+        for y in xrange(board.SIZE):
+            move = get_move(board, checker, x, y)
+            if move.type:
+                available_moves.append((x, y))
+    return available_moves
 
-            return Move(Move.TYPE.WRONG)
 
-    def get_available_moves(self, checker):
-        available_moves = []
-        for x in xrange(self.board.SIZE):
-            for y in xrange(self.board.SIZE):
-                move = self.get_move(checker, x, y)
-                if move.type:
-                    available_moves.append((x, y))
-        return available_moves
-
-    def is_king_line(self, color, y):
-        if color == Checker.WHITE:
-            return y == 0
-        else:
-            return y == self.board.SIZE - 1
+def is_king_line(board, color, y):
+    if color == Checker.WHITE:
+        return y == 0
+    else:
+        return y == board.SIZE - 1

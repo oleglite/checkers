@@ -3,7 +3,7 @@
 from qt import QObject, QMainWindow, QFileDialog
 
 from checkers.serialization import load_board_from_file, save_board
-from gui.board import BoardWidget
+from gui.board import create_board_widget
 from gui.ui.mainwindow import Ui_MainWindow
 
 
@@ -40,7 +40,7 @@ class WindowController(QObject):
             return
 
         board = load_board_from_file(file_name)
-        self.window.set_board_widget(BoardWidget(board))
+        self.window.set_board_widget(create_board_widget(board))
 
     def process_save(self):
         file_name, _ = QFileDialog.getSaveFileName(dir='boards')
