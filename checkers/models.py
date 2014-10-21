@@ -11,7 +11,7 @@ class BoardError(Exception):
 
 
 def field_verbose(x, y):
-    return "abcdefghij"[x] + str(y+1)
+    return "abcdefghij"[x] + str(y + 1)
 
 
 class Board(object):
@@ -21,17 +21,27 @@ class Board(object):
         self.checkers = []
 
     def add_checker(self, checker):
-        if not self.is_valid_field(checker.x ,checker.y):
-            raise BoardError("Invalid checker position: (%d, %d)." % (checker.x, checker.y))
-
-        if self.get_checker_in_position(checker.x, checker.y):
-            raise BoardError("Checker in %s already exists." % field_verbose(checker.x, checker.y))
-
+        self._check_free_field(checker.x, checker.y)
         self.checkers.append(checker)
 
+    def move_checker(self, checker, x, y):
+        self._check_free_field(x, y)
+        if checker not in self.checkers:
+            raise BoardError("This checker not on board, can't move it: %s." % checker)
+
+        checker.move(x, y)
+
+    def _check_free_field(self, x, y):
+        if not self.is_valid_field(x, y):
+            raise BoardError("Invalid checker position: (%d, %d)." % (x, y))
+
+        if self.get_checker_in_position(x, y):
+            raise BoardError("Checker in %s already exists." % field_verbose(x, y))
+
     def remove_checker(self, checker):
-        if checker in self.checkers:
-            self.checkers.remove(checker)
+        if checker not in self.checkers:
+            raise BoardError("This checker not on board, can't remove it: %s." % checker)
+        self.checkers.remove(checker)
 
     def get_checker_in_position(self, x, y):
         for checker in self.checkers:
