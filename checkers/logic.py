@@ -22,12 +22,12 @@ class Game(object):
             self.board = Board()
 
         self.board_manager = BoardManager(self.board)
-        self.black_player = Player(self, Checker.BLACK)
         self.white_player = Player(self, Checker.WHITE)
+        self.black_player = Player(self, Checker.BLACK)
 
         self.current_player = self.white_player
 
-        return self.black_player, self.white_player
+        return self.white_player, self.black_player
 
     def turn(self):
         self.current_player.turn()
@@ -44,27 +44,21 @@ class Game(object):
 
         if move.type == Move.TYPE.MOVE:
             self.board.move_checker(checker, x, y)
-            became_king = self.try_to_become_king(checker)
-            if not became_king:
-                self.change_current_player()
-            return move
+            self.check_become_king(checker)
+            self.change_current_player()
 
         if move.type == Move.TYPE.KICK:
             self.board.move_checker(checker, x, y)
             self.board.remove_checker(move.victim)
-            became_king = self.try_to_become_king(checker)
-            if not became_king:
-                return move
-
+            self.check_become_king(checker)
             available_moves = self.board_manager.get_available_moves(checker)
             can_kick_again = any(move.type == Move.TYPE.KICK for move in available_moves)
             if not can_kick_again:
                 self.change_current_player()
 
-            # TODO: make checker king
+        return move
 
-
-    def try_to_become_king(self, checker):
+    def check_become_king(self, checker):
         if checker.is_king:
             return False
 
@@ -72,7 +66,6 @@ class Game(object):
             checker.make_king()
 
         return False
-
 
     def change_current_player(self):
         self.current_player = self.white_player if self.current_player == self.black_player else self.black_player
