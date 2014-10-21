@@ -8,15 +8,15 @@ from checkers.models import Checker
 from gui.dialogs import show_dialog
 
 
-def create_board_widget(board):
+def create_board_widget(board, player):
     widget = BoardWidget(board)
 
     if settings.EDITOR_MODE:
-        controller_cls = CreateBoardController
+        controller_cls = BoardEditorController
     else:
         controller_cls = BoardController
 
-    controller = controller_cls(board, widget)
+    controller = controller_cls(board, player, widget)
 
     widget.field_clicked.connect(controller.process_field_clicked)
     return widget
@@ -178,9 +178,10 @@ class BoardWidget(QWidget):
 
 
 class BoardController(QObject):
-    def __init__(self, board, widget):
+    def __init__(self, board, player, widget):
         super(BoardController, self).__init__(widget)
         self.board = board
+        self.player = player
         self.widget = widget
         self._selected_field = None
 
@@ -191,16 +192,14 @@ class BoardController(QObject):
 
         clicked_field = (x_field, y_field)
 
-        if button == Qt.LeftButton:
-            self.select_field(clicked_field)
-
         self._field_clicked(button, clicked_field)
         self.widget.repaint()
 
     def _field_clicked(self, button, clicked_field):
-        """
-        Implement in subclussed if needed
-        """
+        if button == Qt.LeftButton:
+            checker = self.board.get_checker_in_position(*clicked_field)
+            if checker and checker.color == self.player.color:
+                self.select_field(clicked_field)
 
     def select_field(self, new_selected_field):
         self._selected_field = new_selected_field
@@ -225,12 +224,14 @@ class BoardController(QObject):
         self.widget.set_available_moves(available_moves)
 
 
-class CreateBoardController(BoardController):
+class BoardEditorController(BoardController):
     MAKE_KING = 'Make king'
     MAKE_NOT_KING = 'Make not king'
 
     def _field_clicked(self, button, clicked_field):
-        if button == Qt.RightButton:
+        if button == Qt.LeftButton:
+            self.select_field(clicked_field)
+        elif button == Qt.RightButton:
             checker = self.board.get_checker_in_position(*clicked_field)
             if checker:
                 action = self.MAKE_NOT_KING if checker.is_king else self.MAKE_KING
@@ -250,3 +251,11 @@ class CreateBoardController(BoardController):
             self.update_available_moves()
 
 
+
+AVAILABLE_CONTROLLERS = {
+    'game': BoardController,
+    'editor': BoardEditorController,
+}
+AVAILABLE_CONTROLLERS_ORDER = ['game', 'editor']
+
+assert set(AVAILABLE_CONTROLLERS) == set(AVAILABLE_CONTROLLERS_ORDER)

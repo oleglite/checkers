@@ -11,11 +11,7 @@ class GameError(Exception):
 
 
 class Game(object):
-
-    def __init__(self):
-        self.new_game()
-
-    def new_game(self, filename=None):
+    def __init__(self, filename=None):
         if filename:
             self.board = load_board_from_file(filename)
         else:
@@ -25,8 +21,6 @@ class Game(object):
         self.black_player = Player(self, Checker.BLACK)
 
         self.current_player = self.white_player
-
-        return self.white_player, self.black_player
 
     def turn(self):
         self.current_player.turn()
