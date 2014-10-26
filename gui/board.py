@@ -220,6 +220,7 @@ class BoardController(QObject):
 class BoardEditorController(BoardController):
     MAKE_KING = 'Make king'
     MAKE_NOT_KING = 'Make not king'
+    REMOVE = 'Remove'
 
     def _field_clicked(self, button, clicked_field):
         if button == Qt.LeftButton:
@@ -227,12 +228,14 @@ class BoardEditorController(BoardController):
         elif button == Qt.RightButton:
             checker = self.board.get_checker_in_position(*clicked_field)
             if checker:
-                action = self.MAKE_NOT_KING if checker.is_king else self.MAKE_KING
-                answer = show_dialog([action], message='Chose action:', title='Editing checker')
+                make_king = self.MAKE_NOT_KING if checker.is_king else self.MAKE_KING
+                answer = show_dialog([make_king, self.REMOVE], message='Chose action:', title='Editing checker')
                 if answer == self.MAKE_KING:
                     checker.make_king()
                 elif answer == self.MAKE_NOT_KING:
                     checker.is_king = False
+                elif answer == self.REMOVE:
+                    self.board.remove_checker(checker)
             else:
                 button_values = [Checker.WHITE, Checker.BLACK]
                 button_names = [name.capitalize() for name in button_values]
