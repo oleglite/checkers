@@ -1,21 +1,25 @@
 # -*- coding: utf-8 -*-
 
-from qt import QObject, QMainWindow, QFileDialog, QMenu, QAction
+from qt import QObject, QMainWindow, QFileDialog, QMenu, QAction, Signal
 
 import settings
-from checkers.serialization import load_board_from_file, save_board
+from checkers.logic import Game
+from checkers.serialization import save_board
 from gui.board import create_board_widget, AVAILABLE_CONTROLLERS_ORDER
 from gui.ui.mainwindow import Ui_MainWindow
 
 
 class Window(QMainWindow, Ui_MainWindow):
+    open_pressed = Signal()
+    save_pressed = Signal()
+    change_board_controller_pressed = Signal(str)   # board_controller_id
+
     def __init__(self):
         super(Window, self).__init__()
         self.setupUi(self)
 
-        self.controller = WindowController(self)
-
         self.board_widget = None
+        self._slots = []
 
         if settings.EDITOR_MODE:
             self.init_editor_menu()
@@ -25,15 +29,22 @@ class Window(QMainWindow, Ui_MainWindow):
     def init_editor_menu(self):
         self.menu_editor = QMenu('Editor', self.menubar)
 
-        self.menu_controller = QMenu('Controller', self.menubar)
+        self.menu_controller = QMenu('Board controller', self.menubar)
         self.controller_actions = []
-        for controller in AVAILABLE_CONTROLLERS_ORDER:
-            action = QAction(controller, self)
+        for controller_id in AVAILABLE_CONTROLLERS_ORDER:
+            action = QAction(controller_id, self)
+            action.triggered.connect(self.create_slot_change_board_controller(controller_id))
             self.controller_actions.append(action)
             self.menu_controller.addAction(action)
         self.menu_editor.addMenu(self.menu_controller)
 
         self.menubar.addMenu(self.menu_editor)
+
+    def create_slot_change_board_controller(self, controller_id):
+        def slot():
+            self.change_board_controller_pressed.emit(controller_id)
+        self._slots.append(slot)    # to avoid destroying slot by GC
+        return slot
 
     def set_board_widget(self, board_widget):
         self.board_widget = board_widget
@@ -41,8 +52,8 @@ class Window(QMainWindow, Ui_MainWindow):
         self.repaint()
 
     def connect_signals(self):
-        self.actionOpen.triggered.connect(self.controller.process_open)
-        self.actionSave.triggered.connect(self.controller.process_save)
+        self.actionOpen.triggered.connect(self.open_pressed)
+        self.actionSave.triggered.connect(self.save_pressed)
 
 
 class WindowController(QObject):
@@ -50,16 +61,43 @@ class WindowController(QObject):
         super(WindowController, self).__init__(window)
 
         self.window = window
+        self.game = Game('boards/default.json')
+        self.player = self.game.white_player
+
+        self._board_controller_id = None
+
+        self.create_board_widget(self.game.board, self.player)
+        self.connect_signals()
+
+    def connect_signals(self):
+        self.window.save_pressed.connect(self.process_save)
+        self.window.open_pressed.connect(self.process_open)
+        self.window.change_board_controller_pressed.connect(self.process_change_board_controller)
 
     def process_open(self):
         file_name, _ = QFileDialog.getOpenFileName(dir='boards')
         if not file_name:
             return
 
-        board = load_board_from_file(file_name)
-        self.window.set_board_widget(create_board_widget(board))
+        self.game = Game(file_name)
+        self.create_board_widget(self.game.board, self.player)
 
     def process_save(self):
         file_name, _ = QFileDialog.getSaveFileName(dir='boards')
         with open(file_name, 'w') as f:
             f.write(save_board(self.window.board_widget.board))
+
+    def process_change_board_controller(self, controller_id):
+        self.create_board_widget(self.game.board, self.player, controller_id)
+
+    def create_board_widget(self, board, player, controller_id=None):
+        if not controller_id:
+            if self._board_controller_id:
+                controller_id = self._board_controller_id
+            if settings.EDITOR_MODE:
+                controller_id = 'editor'
+            else:
+                controller_id = 'game'
+
+        self._board_controller_id = controller_id
+        self.window.set_board_widget(create_board_widget(board, player, controller_id))

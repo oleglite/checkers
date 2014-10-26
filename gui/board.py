@@ -2,23 +2,14 @@
 
 from qt import Qt, QRectF, QWidget, QPainter, QBrush, QPen, QColor, Signal, QObject
 
-import settings
 from checkers.logic import get_available_moves
 from checkers.models import Checker
 from gui.dialogs import show_dialog
 
 
-def create_board_widget(board, player):
+def create_board_widget(board, player, controller_id):
     widget = BoardWidget(board)
-
-    if settings.EDITOR_MODE:
-        controller_cls = BoardEditorController
-    else:
-        controller_cls = BoardController
-
-    controller = controller_cls(board, player, widget)
-
-    widget.field_clicked.connect(controller.process_field_clicked)
+    AVAILABLE_CONTROLLERS[controller_id](board, player, widget)
     return widget
 
 
@@ -45,17 +36,14 @@ class BoardWidget(QWidget):
         self._available_move_field_brush = QBrush(Qt.green)
         self._black_checker_brush = QBrush(Qt.black)
         self._black_king_checker_brush = QBrush(Qt.black)
-        self._white_checker_pen = QPen(QBrush(Qt.gray), 4, j=Qt.RoundJoin)
-        self._black_checker_pen = QPen(QBrush(Qt.gray), 4, j=Qt.RoundJoin)
-        self._white_king_checker_pen = QPen(QBrush(QColor.fromRgb(210, 30, 15)), 4, j=Qt.RoundJoin)
-        self._black_king_checker_pen = QPen(QBrush(QColor.fromRgb(210, 30, 15)), 4, j=Qt.RoundJoin)
+        self._white_checker_pen = QPen(QBrush(Qt.gray), 5, j=Qt.RoundJoin)
+        self._black_checker_pen = QPen(QBrush(Qt.gray), 5, j=Qt.RoundJoin)
+        self._white_king_checker_pen = QPen(QBrush(Qt.red), 5, j=Qt.RoundJoin)
+        self._black_king_checker_pen = QPen(QBrush(Qt.red), 5, j=Qt.RoundJoin)
         self._border_brush = QBrush(QColor.fromRgb(205, 127, 50))
 
         self._field_size = None
         self._border_size = None
-
-    def set_controller(self, controller):
-        self.controller = controller
 
     def set_selected_field(self, field):
         assert field is None or len(field) == 2
@@ -179,11 +167,16 @@ class BoardWidget(QWidget):
 
 class BoardController(QObject):
     def __init__(self, board, player, widget):
-        super(BoardController, self).__init__(widget)
+        super(BoardController, self).__init__(parent=widget)
         self.board = board
         self.player = player
         self.widget = widget
         self._selected_field = None
+
+        self.connect_signals()
+
+    def connect_signals(self):
+        self.widget.field_clicked.connect(self.process_field_clicked)
 
     def process_field_clicked(self, button, x_field, y_field):
         if not self.board.is_black_field(x_field, y_field):
