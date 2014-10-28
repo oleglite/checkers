@@ -3,9 +3,10 @@
 from qt import QObject, QMainWindow, QFileDialog, QMenu, QAction, Signal
 
 import settings
-from checkers.logic import Game
+from checkers.models import Checker
 from checkers.serialization import save_board
 from gui.board import create_board_widget, AVAILABLE_CONTROLLERS_ORDER
+from gui.game import GAME_TYPE
 from gui.ui.mainwindow import Ui_MainWindow
 
 
@@ -61,12 +62,10 @@ class WindowController(QObject):
         super(WindowController, self).__init__(window)
 
         self.window = window
-        self.game = Game('boards/default.json')
-        self.player = self.game.white_player
 
         self._board_controller_id = None
 
-        self.create_board_widget(self.game.board, self.player)
+        self.create_game(GAME_TYPE.TWO_PLAYERS, 'boards/default.json')
         self.connect_signals()
 
     def connect_signals(self):
@@ -79,8 +78,7 @@ class WindowController(QObject):
         if not file_name:
             return
 
-        self.game = Game(file_name)
-        self.create_board_widget(self.game.board, self.player)
+        self.create_game(GAME_TYPE.TRAINING, file_name)
 
     def process_save(self):
         file_name, _ = QFileDialog.getSaveFileName(dir='boards')
@@ -88,16 +86,22 @@ class WindowController(QObject):
             f.write(save_board(self.window.board_widget.board))
 
     def process_change_board_controller(self, controller_id):
-        self.create_board_widget(self.game.board, self.player, controller_id)
+        self.create_board_widget(self.game_controller.game.board, controller_id)
 
-    def create_board_widget(self, board, player, controller_id=None):
+    def create_game(self, type, file_name):
+        self.game_controller = GAME_TYPE.CONTROLLERS[type](file_name, parent=self)
+        self.create_board_widget(self.game_controller.game.board)
+
+    def create_board_widget(self, board, controller_id=None):
         if not controller_id:
             if self._board_controller_id:
                 controller_id = self._board_controller_id
-            if settings.EDITOR_MODE:
+            elif settings.EDITOR_MODE:
                 controller_id = 'editor'
             else:
                 controller_id = 'game'
 
         self._board_controller_id = controller_id
-        self.window.set_board_widget(create_board_widget(board, player, controller_id))
+        board_widget, board_controller = create_board_widget(board, controller_id)
+        board_controller.set_player_color(Checker.WHITE)
+        self.window.set_board_widget(board_widget)

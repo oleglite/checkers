@@ -7,10 +7,10 @@ from checkers.models import Checker
 from gui.dialogs import show_dialog
 
 
-def create_board_widget(board, player, controller_id):
+def create_board_widget(board, controller_id):
     widget = BoardWidget(board)
-    AVAILABLE_CONTROLLERS[controller_id](board, player, widget)
-    return widget
+    controller = AVAILABLE_CONTROLLERS[controller_id](board, widget)
+    return widget, controller
 
 
 class BoardWidget(QWidget):
@@ -166,17 +166,20 @@ class BoardWidget(QWidget):
 
 
 class BoardController(QObject):
-    def __init__(self, board, player, widget):
+    def __init__(self, board, widget):
         super(BoardController, self).__init__(parent=widget)
         self.board = board
-        self.player = player
         self.widget = widget
+        self._player_color = None
         self._selected_field = None
 
         self.connect_signals()
 
     def connect_signals(self):
         self.widget.field_clicked.connect(self.process_field_clicked)
+
+    def set_player_color(self, player_color):
+        self._player_color = player_color
 
     def process_field_clicked(self, button, x_field, y_field):
         if not self.board.is_black_field(x_field, y_field):
@@ -191,7 +194,7 @@ class BoardController(QObject):
     def _field_clicked(self, button, clicked_field):
         if button == Qt.LeftButton:
             checker = self.board.get_checker_in_position(*clicked_field)
-            if checker and checker.color == self.player.color:
+            if checker and checker.color == self._player_color:
                 self.select_field(clicked_field)
 
     def select_field(self, new_selected_field):
