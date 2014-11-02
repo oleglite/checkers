@@ -78,7 +78,7 @@ class WindowController(QObject):
         if not file_name:
             return
 
-        self.create_game(GAME_TYPE.TRAINING, file_name)
+        self.create_game(GAME_TYPE.TWO_PLAYERS, file_name)
 
     def process_save(self):
         file_name, _ = QFileDialog.getSaveFileName(dir='boards')
@@ -86,13 +86,13 @@ class WindowController(QObject):
             f.write(save_board(self.window.board_widget.board))
 
     def process_change_board_controller(self, controller_id):
-        self.create_board_widget(self.game_controller.game.board, controller_id)
+        self.create_board_widget(self.game_controller, controller_id)
 
     def create_game(self, type, file_name):
         self.game_controller = GAME_TYPE.CONTROLLERS[type](file_name, parent=self)
-        self.create_board_widget(self.game_controller.game.board)
+        self.create_board_widget(self.game_controller)
 
-    def create_board_widget(self, board, controller_id=None):
+    def create_board_widget(self, game_controller, controller_id=None):
         if not controller_id:
             if self._board_controller_id:
                 controller_id = self._board_controller_id
@@ -102,6 +102,6 @@ class WindowController(QObject):
                 controller_id = 'game'
 
         self._board_controller_id = controller_id
-        board_widget, board_controller = create_board_widget(board, controller_id)
-        board_controller.set_player_color(Checker.WHITE)
+        board_widget, board_controller = create_board_widget(game_controller.game.board, controller_id)
+        game_controller.set_board_controller(board_controller)
         self.window.set_board_widget(board_widget)

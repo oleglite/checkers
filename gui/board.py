@@ -2,7 +2,7 @@
 
 from qt import Qt, QRectF, QWidget, QPainter, QBrush, QPen, QColor, Signal, QObject
 
-from checkers.logic import get_available_moves
+from checkers.logic import get_available_move_fields
 from checkers.models import Checker
 from gui.dialogs import show_dialog
 
@@ -166,12 +166,15 @@ class BoardWidget(QWidget):
 
 
 class BoardController(QObject):
+    checker_moved = Signal(int, int, int, int)  # from_x, from_y, to_x, to_y
+
     def __init__(self, board, widget):
         super(BoardController, self).__init__(parent=widget)
         self.board = board
         self.widget = widget
         self._player_color = None
         self._selected_field = None
+        self._can_move_checkers = False
 
         self.connect_signals()
 
@@ -180,6 +183,9 @@ class BoardController(QObject):
 
     def set_player_color(self, player_color):
         self._player_color = player_color
+
+    def set_can_move_checkers(self, value):
+        self._can_move_checkers = value
 
     def process_field_clicked(self, button, x_field, y_field):
         if not self.board.is_black_field(x_field, y_field):
@@ -196,8 +202,10 @@ class BoardController(QObject):
             checker = self.board.get_checker_in_position(*clicked_field)
             if checker and checker.color == self._player_color:
                 self.select_field(clicked_field)
+            elif self._selected_field and self._can_move_checkers:
+                self.checker_moved.emit(self._selected_field[0], self._selected_field[1], *clicked_field)
 
-    def select_field(self, new_selected_field):
+    def select_field(self, new_selected_field=None):
         self._selected_field = new_selected_field
         self.widget.set_selected_field(self._selected_field)
         self.update_available_moves()
@@ -213,7 +221,7 @@ class BoardController(QObject):
 
         selected_checker = self.board.get_checker_in_position(*self._selected_field)
         if selected_checker:
-            available_moves = get_available_moves(self.board, selected_checker)
+            available_moves = get_available_move_fields(self.board, selected_checker)
         else:
             available_moves = ()
 

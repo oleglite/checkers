@@ -37,30 +37,26 @@ class Game(object):
 
         if move.type == Move.TYPE.MOVE:
             self.board.move_checker(checker, x, y)
-            self.check_become_king(checker)
-            self.change_current_player()
+            self._check_become_king(checker)
+            self._change_current_player()
 
         if move.type == Move.TYPE.KICK:
             self.board.move_checker(checker, x, y)
             self.board.remove_checker(move.victim)
-            self.check_become_king(checker)
-            available_moves = get_available_moves(self.board, checker)
-            can_kick_again = any(move.type == Move.TYPE.KICK for move in available_moves)
+            self._check_become_king(checker)
+            available_move_fields = get_available_move_fields(self.board, checker)
+            can_kick_again = any(get_move(self.board, checker, new_x, new_y).type == Move.TYPE.KICK
+                                 for new_x, new_y in available_move_fields)
             if not can_kick_again:
-                self.change_current_player()
+                self._change_current_player()
 
         return move
 
-    def check_become_king(self, checker):
-        if checker.is_king:
-            return False
-
-        if is_king_line(self.board, checker.color, checker.y):
+    def _check_become_king(self, checker):
+        if not checker.is_king and is_king_line(self.board, checker.color, checker.y):
             checker.make_king()
 
-        return False
-
-    def change_current_player(self):
+    def _change_current_player(self):
         self.current_player = self.white_player if self.current_player == self.black_player else self.black_player
 
 
@@ -76,7 +72,7 @@ class Player(object):
         self._subscriber()
 
     def move(self, checker, x, y):
-        self.game.move(self, checker, x, y)
+        return self.game.move(self, checker, x, y)
 
 
 class Move(object):
@@ -85,9 +81,21 @@ class Move(object):
         MOVE = 1
         KICK = 2
 
+    NAMES = {
+        TYPE.WRONG: 'Wrong',
+        TYPE.MOVE: 'Move',
+        TYPE.KICK: 'Kick'
+    }
+
     def __init__(self, move_type, victim=None):
         self.type = move_type
         self.victim = victim
+
+    def __str__(self):
+        result = 'Move: %s' % self.NAMES[self.type].upper()
+        if self.victim:
+            result += ', Victim: %s' % self.victim
+        return result
 
 
 def get_move(board, checker, x, y):
@@ -135,7 +143,7 @@ def get_move(board, checker, x, y):
         return Move(Move.TYPE.WRONG)
 
 
-def get_available_moves(board, checker):
+def get_available_move_fields(board, checker):
     available_moves = []
     for x in xrange(board.SIZE):
         for y in xrange(board.SIZE):
