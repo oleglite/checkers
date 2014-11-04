@@ -1,0 +1,24 @@
+{
+    "checkers": [
+        {
+            "color": "white", 
+            "x": 4, 
+            "y": 4
+        }, 
+        {
+            "color": "black", 
+            "x": 3, 
+            "y": 5
+        }, 
+        {
+            "color": "black", 
+            "x": 2, 
+            "y": 2
+        }, 
+        {
+            "color": "black", 
+            "x": 1, 
+            "y": 5
+        }
+    ]
+}

@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 
+from collections import defaultdict
+from copy import deepcopy
+
 from checkers.models import Checker, Board
 from checkers.serialization import load_board_from_file
 
@@ -155,14 +158,33 @@ def get_move(board, checker, x, y):
         return Move(Move.TYPE.WRONG)
 
 
-def get_available_move_fields(board, checker):
-    available_moves = []
+def get_available_moves(board, checker):
+    available_moves = defaultdict(list)
     for x in xrange(board.SIZE):
         for y in xrange(board.SIZE):
             move = get_move(board, checker, x, y)
             if move.type:
-                available_moves.append((x, y))
+                available_moves[move.type].append((x, y))
     return available_moves
+
+
+def get_available_move_fields(board, checker):
+    available_moves = get_available_moves(board, checker)
+
+    kick_moves = available_moves[Move.TYPE.KICK]
+    if kick_moves:
+        kick_moves_2 = []
+        for move_field in kick_moves:
+            board_copy = deepcopy(board)
+            checker_copy = board_copy.get_checker_in_position(checker.x, checker.y)
+            board_copy.move_checker(checker_copy, *move_field)
+            available_moves = get_available_moves(board_copy, checker_copy)
+            if available_moves[Move.TYPE.KICK]:
+                kick_moves_2.append(move_field)
+
+        return kick_moves_2 or kick_moves
+
+    return available_moves[Move.TYPE.MOVE]
 
 
 def is_king_line(board, color, y):
