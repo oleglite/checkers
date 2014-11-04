@@ -37,17 +37,15 @@ class Game(object):
 
         if move.type == Move.TYPE.MOVE:
             self.board.move_checker(checker, x, y)
-            self._check_become_king(checker)
-            self._change_current_player()
+            became_king = self._check_become_king(checker)
+            if not became_king or not self._can_kick_again(checker):
+                self._change_current_player()
 
         if move.type == Move.TYPE.KICK:
             self.board.move_checker(checker, x, y)
             self.board.remove_checker(move.victim)
             self._check_become_king(checker)
-            available_move_fields = get_available_move_fields(self.board, checker)
-            can_kick_again = any(get_move(self.board, checker, new_x, new_y).type == Move.TYPE.KICK
-                                 for new_x, new_y in available_move_fields)
-            if not can_kick_again:
+            if not self._can_kick_again(checker):
                 self._change_current_player()
 
         return move
@@ -55,9 +53,17 @@ class Game(object):
     def _check_become_king(self, checker):
         if not checker.is_king and is_king_line(self.board, checker.color, checker.y):
             checker.make_king()
+            return True
+        return False
 
     def _change_current_player(self):
         self.current_player = self.white_player if self.current_player == self.black_player else self.black_player
+
+    def _can_kick_again(self, checker):
+        available_move_fields = get_available_move_fields(self.board, checker)
+        can_kick_again = any(get_move(self.board, checker, new_x, new_y).type == Move.TYPE.KICK
+                             for new_x, new_y in available_move_fields)
+        return can_kick_again
 
 
 class Player(object):
@@ -121,7 +127,13 @@ def get_move(board, checker, x, y):
                 victims.append(victim)
 
         if len(victims) == 1:
-            return Move(Move.TYPE.KICK, victims[0])
+            if victims[0].color == checker.color:
+                return Move(Move.TYPE.WRONG)
+            else:
+                return Move(Move.TYPE.KICK, victims[0])
+
+        if len(victims) > 1:
+            return Move(Move.TYPE.WRONG)
 
         return Move(Move.TYPE.MOVE)
 
@@ -155,6 +167,6 @@ def get_available_move_fields(board, checker):
 
 def is_king_line(board, color, y):
     if color == Checker.WHITE:
-        return y == 0
-    else:
         return y == board.SIZE - 1
+    else:
+        return y == 0

@@ -1,3 +1,3 @@
 # -*- coding: utf-8 -*-
 
-EDITOR_MODE = False
+EDITOR_MODE = True
