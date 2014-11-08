@@ -5,6 +5,7 @@ from qt import Qt, QRectF, QWidget, QPainter, QBrush, QPen, QColor, Signal, QObj
 from checkers.logic import get_available_move_fields
 from checkers.models import Checker
 from gui.dialogs import show_dialog
+from gui.tools import ask_checker_color
 
 
 def create_board_widget(board, controller_id):
@@ -175,6 +176,7 @@ class BoardController(QObject):
         self._player_color = None
         self._selected_field = None
         self._can_move_checkers = False
+        self._can_select = True
 
         self.connect_signals()
 
@@ -186,6 +188,7 @@ class BoardController(QObject):
 
     def set_can_move_checkers(self, value):
         self._can_move_checkers = value
+        self._can_select = value
 
     def process_field_clicked(self, button, x_field, y_field):
         if not self.board.is_black_field(x_field, y_field):
@@ -206,6 +209,9 @@ class BoardController(QObject):
                 self.checker_moved.emit(self._selected_field[0], self._selected_field[1], *clicked_field)
 
     def select_field(self, new_selected_field=None):
+        if not self._can_select:
+            new_selected_field = None
+
         self._selected_field = new_selected_field
         self.widget.set_selected_field(self._selected_field)
         self.update_available_moves()
@@ -248,9 +254,7 @@ class BoardEditorController(BoardController):
                 elif answer == self.REMOVE:
                     self.board.remove_checker(checker)
             else:
-                button_values = [Checker.WHITE, Checker.BLACK]
-                button_names = [name.capitalize() for name in button_values]
-                color = show_dialog(button_names, button_values, message='Choose checker color:', title='Adding checker')
+                color = ask_checker_color('Change color to:')
                 if color:
                     checker = Checker(color, *clicked_field)
                     self.board.add_checker(checker)

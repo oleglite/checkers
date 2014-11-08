@@ -42,17 +42,34 @@ class TwoPlayersGameController(GameController):
         self.board_controller.set_can_move_checkers(True)
 
     def _process_checker_moved(self, checker, x, y):
-        print self.game.current_player.move(checker, x, y)
+        print checker.color, self.game.current_player.move(checker, x, y)
+
+
+class OnePlayerGameController(GameController):
+    def __init__(self, game_file_name, player_color, parent=None):
+        super(OnePlayerGameController, self).__init__(game_file_name, parent)
+        self.player_color = player_color
+
+    def set_board_controller(self, board_controller):
+        super(OnePlayerGameController, self).set_board_controller(board_controller)
+        player_make_move_first = self.player_color == Checker.WHITE
+        self.board_controller.set_can_move_checkers(player_make_move_first)
+
+    def _process_checker_moved(self, checker, x, y):
+        print checker.color, self.game.current_player.move(checker, x, y)
+
+        self.board_controller.set_can_move_checkers(checker.color != self.player_color)
+
 
 
 class GAME_TYPE:
     TWO_PLAYERS = 'Player vs Player'
     ONE_PLAYER = 'Players vs AI'
-    TRAINING = 'Trining'
+    # TRAINING = 'Training'
 
     CONTROLLERS = {
         TWO_PLAYERS: TwoPlayersGameController,
-        ONE_PLAYER: TwoPlayersGameController,
-        TRAINING: TwoPlayersGameController,
+        ONE_PLAYER: OnePlayerGameController,
+        # TRAINING: TwoPlayersGameController,
     }
-    ORDERING = [TRAINING, ONE_PLAYER, TWO_PLAYERS]
+    ORDERING = [ONE_PLAYER, TWO_PLAYERS]
