@@ -24,6 +24,10 @@ class Board(object):
         self._check_free_field(checker.x, checker.y)
         self.checkers.append(checker)
 
+    def move(self, x1, y1, x2, y2):
+        checker = self.get_checker_in_position(x1, y1)
+        self.move_checker(checker, x2, y2)
+
     def move_checker(self, checker, x, y):
         self._check_free_field(x, y)
         if checker not in self.checkers:
@@ -48,6 +52,22 @@ class Board(object):
             if checker.x == x and checker.y == y:
                 return checker
         return None
+
+    def get_winner(self):
+        checker_numbers = dict.fromkeys([Checker.WHITE, Checker.BLACK], 0)
+        for checker in self.checkers:
+            checker_numbers[checker.color] += 1
+
+        if checker_numbers[Checker.WHITE] == 0:
+            return Checker.BLACK
+
+        if checker_numbers[Checker.BLACK] == 0:
+            return Checker.WHITE
+
+        return None
+
+    def get_checkers(self, color):
+        return (checker for checker in self.checkers if checker.color == color)
 
     @staticmethod
     def is_black_field(x, y):
