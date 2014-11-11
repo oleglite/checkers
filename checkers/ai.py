@@ -3,9 +3,9 @@
 from random import choice
 from copy import deepcopy
 
-from checkers.logic import get_available_move_fields, get_move, Move
+from checkers.logic import get_move, Move, get_available_moves_all_checkers
 
-MAX_RECURSION = 3
+MAX_RECURSION = 4
 
 
 class RESULT:
@@ -13,6 +13,14 @@ class RESULT:
     UNKNOWN = 3
     DRAW = 2
     LOSE = 1
+    SKIP = 0
+
+
+def calculate_ai_move(board, ai_color, player_color):
+    move_coords, result_tuple = minimax(board, ai_color, player_color)
+    if result_tuple[0] == RESULT.SKIP:
+        return None
+    return move_coords
 
 
 def minimax(board, ai_color, player_color, recursion_level=0):
@@ -29,8 +37,8 @@ def minimax(board, ai_color, player_color, recursion_level=0):
         # (move_coords, result_tuple),
     ]
 
-    for checker in board.get_checkers(color):
-        for field in get_available_move_fields(board, checker):
+    for checker, available_fields in get_available_moves_all_checkers(board, color):
+        for field in available_fields:
             board_copy = deepcopy(board)
 
             move_coords = (checker.x, checker.y, field[0], field[1])
@@ -59,7 +67,7 @@ def minimax(board, ai_color, player_color, recursion_level=0):
             results.append((move_coords, (result, ai_kicks, player_kicks)))
 
     if not results:
-        return (), (RESULT.UNKNOWN, 0, 0)
+        return (), (RESULT.SKIP, 0, 0)
 
     fn = max if color == ai_color else min
     best_result = fn(results, key=lambda i: i[1])

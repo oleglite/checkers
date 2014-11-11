@@ -2,7 +2,7 @@
 
 from qt import Qt, QRectF, QWidget, QPainter, QBrush, QPen, QColor, Signal, QObject
 
-from checkers.logic import get_available_move_fields
+from checkers.logic import get_available_fields_for_checker
 from checkers.models import Checker
 from gui.dialogs import show_dialog
 from gui.tools import ask_checker_color
@@ -189,15 +189,10 @@ class BoardController(QObject):
     def set_can_move_checkers(self, value):
         self._can_move_checkers = value
         self._can_select = value
+        print value
 
     def process_field_clicked(self, button, x_field, y_field):
-        if not self.board.is_black_field(x_field, y_field):
-            # TODO: show notification
-            return
-
-        clicked_field = (x_field, y_field)
-
-        self._field_clicked(button, clicked_field)
+        self._field_clicked(button, (x_field, y_field))
         self.widget.repaint()
 
     def _field_clicked(self, button, clicked_field):
@@ -227,7 +222,7 @@ class BoardController(QObject):
 
         selected_checker = self.board.get_checker_in_position(*self._selected_field)
         if selected_checker:
-            available_moves = get_available_move_fields(self.board, selected_checker)
+            available_moves = get_available_fields_for_checker(self.board, selected_checker)
         else:
             available_moves = ()
 

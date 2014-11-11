@@ -38,6 +38,9 @@ class Game(object):
         if move.type == Move.TYPE.WRONG:
             raise GameError("You can't move checker to this field.")
 
+        if (x, y) not in get_available_fields_for_checker(self.board, checker):
+            raise GameError("You must kick.")
+
         if move.type == Move.TYPE.MOVE:
             self.board.move_checker(checker, x, y)
             became_king = self._check_become_king(checker)
@@ -63,7 +66,7 @@ class Game(object):
         self.current_player = self.white_player if self.current_player == self.black_player else self.black_player
 
     def _can_kick_again(self, checker):
-        available_move_fields = get_available_move_fields(self.board, checker)
+        available_move_fields = get_available_fields_for_checker(self.board, checker)
         can_kick_again = any(get_move(self.board, checker, new_x, new_y).type == Move.TYPE.KICK
                              for new_x, new_y in available_move_fields)
         return can_kick_again
@@ -158,7 +161,7 @@ def get_move(board, checker, x, y):
         return Move(Move.TYPE.WRONG)
 
 
-def get_available_moves(board, checker):
+def _get_available_moves(board, checker):
     available_moves = defaultdict(list)
     for x in xrange(board.SIZE):
         for y in xrange(board.SIZE):
@@ -168,8 +171,8 @@ def get_available_moves(board, checker):
     return available_moves
 
 
-def get_available_move_fields(board, checker):
-    available_moves = get_available_moves(board, checker)
+def _get_available_move_fields(board, checker):
+    available_moves = _get_available_moves(board, checker)
 
     kick_moves = available_moves[Move.TYPE.KICK]
     if kick_moves:
@@ -178,13 +181,30 @@ def get_available_move_fields(board, checker):
             board_copy = deepcopy(board)
             checker_copy = board_copy.get_checker_in_position(checker.x, checker.y)
             board_copy.move_checker(checker_copy, *move_field)
-            available_moves = get_available_moves(board_copy, checker_copy)
-            if available_moves[Move.TYPE.KICK]:
+            available_moves_2 = _get_available_moves(board_copy, checker_copy)
+            if available_moves_2[Move.TYPE.KICK]:
                 kick_moves_2.append(move_field)
 
-        return kick_moves_2 or kick_moves
+        return kick_moves_2 or kick_moves, Move.TYPE.KICK
 
-    return available_moves[Move.TYPE.MOVE]
+    return available_moves[Move.TYPE.MOVE], Move.TYPE.MOVE
+
+
+def get_available_moves_all_checkers(board, color):
+    move_fields = {}
+    for checker in board.get_checkers(color):
+        available_fields, move_type = _get_available_move_fields(board, checker)
+        move_fields.setdefault(move_type, []).append((checker, available_fields))
+
+    return move_fields.get(Move.TYPE.KICK) or move_fields.get(Move.TYPE.MOVE, [])
+
+
+def get_available_fields_for_checker(board, checker):
+    available_moves = get_available_moves_all_checkers(board, checker.color)
+    for moves_for_checker, available_fields in available_moves:
+        if moves_for_checker == checker:
+            return available_fields
+    return []
 
 
 def is_king_line(board, color, y):
