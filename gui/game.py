@@ -9,6 +9,7 @@ from checkers.models import Checker
 
 class GameController(QObject):
     move_logged = Signal(str)
+    score_updated = Signal(int, int)
 
     def __init__(self, game_file_name, parent=None):
         super(GameController, self).__init__(parent=parent)
@@ -45,6 +46,8 @@ class GameController(QObject):
 
         self.board_controller.select_field()
         self.board_controller.set_player_color(self.game.current_player.color)
+
+        self.score_updated.emit(self.game.white_player.score, self.game.black_player.score)
 
     def _process_checker_moved(self, checker, x, y):
         pass

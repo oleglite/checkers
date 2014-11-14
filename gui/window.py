@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from qt import QObject, QMainWindow, QFileDialog, QMenu, QAction, Signal, QWidget, QHBoxLayout, QPlainTextEdit
+from qt import (QObject, QMainWindow, QFileDialog, QMenu, QAction, Signal, QWidget, QHBoxLayout, QVBoxLayout,
+                QPlainTextEdit, QLCDNumber)
 
 import settings
 from checkers.serialization import save_board
@@ -51,16 +52,32 @@ class Window(QMainWindow, Ui_MainWindow):
 
     def set_board_widget(self, board_widget):
         self.board_widget = board_widget
-        self.log_widget = QPlainTextEdit(self)
 
         layout = QHBoxLayout()
         layout.addWidget(board_widget, 2)
-        layout.addWidget(self.log_widget, 1)
+        layout.addWidget(self.create_sidebar_widget())
         central_widget = QWidget(self)
         central_widget.setLayout(layout)
         self.setCentralWidget(central_widget)
 
         self.repaint()
+
+    def create_sidebar_widget(self):
+        self.lcd_widget = QLCDNumber(self)
+        self.lcd_widget.setFixedHeight(100)
+        self.set_score(0, 0)
+        self.log_widget = QPlainTextEdit(self)
+
+        sidebar = QWidget(self)
+        sidebar_layout = QVBoxLayout()
+        sidebar_layout.addWidget(self.lcd_widget)
+        sidebar_layout.addWidget(self.log_widget)
+        sidebar.setLayout(sidebar_layout)
+
+        sidebar.setFixedWidth(250)
+
+
+        return sidebar
 
     def connect_signals(self):
         self.actionNew.triggered.connect(self.new_pressed)
@@ -69,6 +86,10 @@ class Window(QMainWindow, Ui_MainWindow):
 
     def append_to_move_log(self, msg):
         self.log_widget.appendPlainText(msg)
+
+    def set_score(self, white, black):
+        msg = '%d:%d' % (white, black)
+        self.lcd_widget.display(msg.center(5))
 
 
 class WindowController(QObject):
@@ -87,8 +108,6 @@ class WindowController(QObject):
         self.window.save_pressed.connect(self.process_save)
         self.window.open_pressed.connect(self.process_open)
         self.window.change_board_controller_pressed.connect(self.process_change_board_controller)
-
-        self.game_controller.move_logged.connect(self.window.append_to_move_log)
 
     def process_new(self):
         self.create_game('boards/default.json')
@@ -118,6 +137,9 @@ class WindowController(QObject):
             self.game_controller = contoller_cls(file_name, parent=self)
 
         self.create_board_widget(self.game_controller)
+
+        self.game_controller.move_logged.connect(self.window.append_to_move_log)
+        self.game_controller.score_updated.connect(self.window.set_score)
 
     def create_board_widget(self, game_controller, controller_id=None):
         if not controller_id:
