@@ -76,15 +76,13 @@ class Player(object):
     def __init__(self, game, color):
         self.game = game
         self.color = color
-
-    def subscribe_for_turns(self, callback):
-        self._subscriber = callback
-
-    def turn(self):
-        self._subscriber()
+        self.score = 0
 
     def move(self, checker, x, y):
-        return self.game.move(self, checker, x, y)
+        move = self.game.move(self, checker, x, y)
+        if move.type == Move.TYPE.KICK:
+            self.score += 1
+        return move
 
 
 class Move(object):
@@ -104,7 +102,7 @@ class Move(object):
         self.victim = victim
 
     def __str__(self):
-        result = 'Move: %s' % self.NAMES[self.type].upper()
+        result = self.NAMES[self.type].upper()
         if self.victim:
             result += ', Victim: %s' % self.victim
         return result

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from qt import QObject, QMessageBox
+from qt import QObject, QMessageBox, Signal
 
 from checkers.ai import calculate_ai_move
 from checkers.logic import Game, GameError
@@ -8,6 +8,8 @@ from checkers.models import Checker
 
 
 class GameController(QObject):
+    move_logged = Signal(str)
+
     def __init__(self, game_file_name, parent=None):
         super(GameController, self).__init__(parent=parent)
         self.game = Game(game_file_name)
@@ -31,7 +33,7 @@ class GameController(QObject):
 
         try:
             move = self.game.current_player.move(checker, x2, y2)
-            print checker.color, move
+            self.move_logged.emit('%s: %s' % (move, checker))
         except GameError, e:
             QMessageBox.information(self.board_controller.widget, 'Wrong', str(e))
 
@@ -79,11 +81,11 @@ class OnePlayerGameController(GameController):
         while self.game.current_player.color == self.ai_color:
             move_coords = calculate_ai_move(self.game.board, self.ai_color, self.player_color)
             if not move_coords:
-                print 'ai has skipped turn'
+                self.move_logged.emit('ai has skipped turn')
                 break
             checker = self.game.board.get_checker_in_position(move_coords[0], move_coords[1])
             move = self.game.current_player.move(checker, move_coords[2], move_coords[3])
-            print checker.color, move
+            self.move_logged.emit('%s: %s' % (move, checker))
 
         self.board_controller.set_can_move_checkers(True)
 

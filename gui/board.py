@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from qt import Qt, QRectF, QWidget, QPainter, QBrush, QPen, QColor, Signal, QObject
+from qt import Qt, QRectF, QWidget, QPainter, QBrush, QPen, QColor, Signal, QObject, QSize
 
 from checkers.logic import get_available_fields_for_checker
 from checkers.models import Checker
@@ -189,7 +189,6 @@ class BoardController(QObject):
     def set_can_move_checkers(self, value):
         self._can_move_checkers = value
         self._can_select = value
-        print value
 
     def process_field_clicked(self, button, x_field, y_field):
         self._field_clicked(button, (x_field, y_field))

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from qt import QObject, QMainWindow, QFileDialog, QMenu, QAction, Signal
+from qt import QObject, QMainWindow, QFileDialog, QMenu, QAction, Signal, QWidget, QHBoxLayout, QPlainTextEdit
 
 import settings
 from checkers.serialization import save_board
@@ -51,13 +51,24 @@ class Window(QMainWindow, Ui_MainWindow):
 
     def set_board_widget(self, board_widget):
         self.board_widget = board_widget
-        self.setCentralWidget(board_widget)
+        self.log_widget = QPlainTextEdit(self)
+
+        layout = QHBoxLayout()
+        layout.addWidget(board_widget, 2)
+        layout.addWidget(self.log_widget, 1)
+        central_widget = QWidget(self)
+        central_widget.setLayout(layout)
+        self.setCentralWidget(central_widget)
+
         self.repaint()
 
     def connect_signals(self):
         self.actionNew.triggered.connect(self.new_pressed)
         self.actionOpen.triggered.connect(self.open_pressed)
         self.actionSave.triggered.connect(self.save_pressed)
+
+    def append_to_move_log(self, msg):
+        self.log_widget.appendPlainText(msg)
 
 
 class WindowController(QObject):
@@ -76,6 +87,8 @@ class WindowController(QObject):
         self.window.save_pressed.connect(self.process_save)
         self.window.open_pressed.connect(self.process_open)
         self.window.change_board_controller_pressed.connect(self.process_change_board_controller)
+
+        self.game_controller.move_logged.connect(self.window.append_to_move_log)
 
     def process_new(self):
         self.create_game('boards/default.json')
