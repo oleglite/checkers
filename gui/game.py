@@ -62,6 +62,9 @@ class OnePlayerGameController(GameController):
 
     def set_board_controller(self, board_controller):
         super(OnePlayerGameController, self).set_board_controller(board_controller)
+        if self.player_color == Checker.WHITE:
+            self.board_controller.set_can_move_checkers(True)
+        board_controller.set_player_color(self.player_color)
 
     def start(self):
         if self.ai_color == Checker.WHITE:
@@ -71,8 +74,9 @@ class OnePlayerGameController(GameController):
         self._make_ai_moves()
 
     def _make_ai_moves(self):
+        self.board_controller.set_can_move_checkers(False)
+
         while self.game.current_player.color == self.ai_color:
-            self.board_controller.set_can_move_checkers(False)
             move_coords = calculate_ai_move(self.game.board, self.ai_color, self.player_color)
             if not move_coords:
                 print 'ai has skipped turn'

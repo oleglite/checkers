@@ -5,7 +5,7 @@ from copy import deepcopy
 
 from checkers.logic import get_move, Move, get_available_moves_all_checkers
 
-MAX_RECURSION = 4
+MAX_RECURSION = 3
 
 
 class RESULT:
