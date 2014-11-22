@@ -93,6 +93,8 @@ class Window(QMainWindow, Ui_MainWindow):
 
 
 class WindowController(QObject):
+    DEFAULT_BOARD_FILENAME = 'boards/default.json'
+
     def __init__(self, window):
         super(WindowController, self).__init__(window)
 
@@ -100,7 +102,7 @@ class WindowController(QObject):
 
         self._board_controller_id = None
 
-        self.create_game('boards/default.json')
+        self.create_game()
         self.connect_signals()
 
     def connect_signals(self):
@@ -110,10 +112,10 @@ class WindowController(QObject):
         self.window.change_board_controller_pressed.connect(self.process_change_board_controller)
 
     def process_new(self):
-        self.create_game('boards/default.json')
+        self.create_game()
 
     def process_open(self):
-        file_name, _ = QFileDialog.getOpenFileName(dir='boards')
+        file_name = self.get_open_filename()
         if not file_name:
             return
 
@@ -127,14 +129,18 @@ class WindowController(QObject):
     def process_change_board_controller(self, controller_id):
         self.create_board_widget(self.game_controller, controller_id)
 
-    def create_game(self, file_name):
+    def create_game(self, file_name=None):
         game_type = show_dialog(GAME_TYPE.ORDERING, message='Choose game type', title='New game')
         contoller_cls = GAME_TYPE.CONTROLLERS[game_type]
         if game_type == GAME_TYPE.ONE_PLAYER:
             color = ask_checker_color('Choose your color:')
-            self.game_controller = contoller_cls(file_name, color, parent=self)
+            self.game_controller = contoller_cls(file_name or self.DEFAULT_BOARD_FILENAME, color, parent=self)
+        elif game_type == GAME_TYPE.TRAINING:
+            if not file_name:
+                file_name = self.get_open_filename()
+            self.game_controller = contoller_cls(file_name)
         else:
-            self.game_controller = contoller_cls(file_name, parent=self)
+            self.game_controller = contoller_cls(file_name or self.DEFAULT_BOARD_FILENAME, parent=self)
 
         self.create_board_widget(self.game_controller)
 
@@ -154,3 +160,8 @@ class WindowController(QObject):
         board_widget, board_controller = create_board_widget(game_controller.game.board, controller_id)
         game_controller.set_board_controller(board_controller)
         self.window.set_board_widget(board_widget)
+
+    def get_open_filename(self):
+        file_name, _ = QFileDialog.getOpenFileName(dir='boards')
+        return file_name
+

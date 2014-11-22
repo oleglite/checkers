@@ -93,14 +93,19 @@ class OnePlayerGameController(GameController):
         self.board_controller.set_can_move_checkers(True)
 
 
+class TrainingGameController(OnePlayerGameController):
+    def __init__(self, game_file_name, parent=None):
+        super(TrainingGameController, self).__init__(game_file_name, Checker.WHITE, parent)
+
+
 class GAME_TYPE:
     TWO_PLAYERS = 'Player vs Player'
     ONE_PLAYER = 'Players vs AI'
-    # TRAINING = 'Training'
+    TRAINING = 'Training'
 
     CONTROLLERS = {
         TWO_PLAYERS: TwoPlayersGameController,
         ONE_PLAYER: OnePlayerGameController,
-        # TRAINING: TwoPlayersGameController,
+        TRAINING: TrainingGameController,
     }
-    ORDERING = [ONE_PLAYER, TWO_PLAYERS]
+    ORDERING = [TRAINING, ONE_PLAYER, TWO_PLAYERS]
