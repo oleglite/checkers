@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+import os
+from PySide.QtGui import QMessageBox
+from checkers.logic import GameError
 
 from qt import (QObject, QMainWindow, QFileDialog, QMenu, QAction, Signal, QWidget, QHBoxLayout, QVBoxLayout,
                 QPlainTextEdit, QLCDNumber)
@@ -94,6 +97,7 @@ class Window(QMainWindow, Ui_MainWindow):
 
 class WindowController(QObject):
     DEFAULT_BOARD_FILENAME = 'boards/default.json'
+    TRAININT_FILENAME = 'boards/task1.json'
 
     def __init__(self, window):
         super(WindowController, self).__init__(window)
@@ -129,16 +133,16 @@ class WindowController(QObject):
     def process_change_board_controller(self, controller_id):
         self.create_board_widget(self.game_controller, controller_id)
 
-    def create_game(self, file_name=None):
-        game_type = show_dialog(GAME_TYPE.ORDERING, message='Choose game type', title='New game')
+    def create_game(self, file_name=None, game_type=None):
+        game_type = game_type or show_dialog(GAME_TYPE.ORDERING, message='Choose game type', title='New game')
         contoller_cls = GAME_TYPE.CONTROLLERS[game_type]
         if game_type == GAME_TYPE.ONE_PLAYER:
             color = ask_checker_color('Choose your color:')
             self.game_controller = contoller_cls(file_name or self.DEFAULT_BOARD_FILENAME, color, parent=self)
         elif game_type == GAME_TYPE.TRAINING:
-            if not file_name:
-                file_name = self.get_open_filename()
-            self.game_controller = contoller_cls(file_name)
+            self.game_controller = contoller_cls(file_name or self.TRAININT_FILENAME)
+
+            self.game_controller.next_task.connect(self.process_next_task)
         else:
             self.game_controller = contoller_cls(file_name or self.DEFAULT_BOARD_FILENAME, parent=self)
 
@@ -165,3 +169,10 @@ class WindowController(QObject):
         file_name, _ = QFileDialog.getOpenFileName(dir='boards')
         return file_name
 
+    def process_next_task(self, filename):
+        self.game_controller.next_task.disconnect(self.process_next_task)
+        if filename and os.path.exists(filename):
+            self.create_game(filename, GAME_TYPE.TRAINING)
+        else:
+            self.game_controller.message('Completed', u'Обучение пройдено!')
+            self.create_game()

@@ -1,0 +1,18 @@
+{
+    "game_type": "training",
+    "name": "Урок 4",
+    "next": "boards/task5.json",
+    "text": "Можно бить назад по диагонали. Побейте шашку противника.",
+    "checkers": [
+        {
+            "color": "white",
+            "x": 3,
+            "y": 3
+        },
+        {
+            "color": "black",
+            "x": 2,
+            "y": 2
+        }
+    ]
+}

@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import json
 
 from qt import QObject, QMessageBox, Signal
 
@@ -36,21 +37,31 @@ class GameController(QObject):
             move = self.game.current_player.move(checker, x2, y2)
             self.move_logged.emit('%s: %s' % (move, checker))
         except GameError, e:
-            QMessageBox.information(self.board_controller.widget, 'Wrong', str(e))
+            self.message('Wrong', str(e))
+
+        self.board_controller.widget.repaint()
+
+        self.score_updated.emit(self.game.white_player.score, self.game.black_player.score)
+
+        self._process_checker_moved(checker, x2, y2)
 
         winner = self.game.board.get_winner()
         if winner:
-            QMessageBox.information(self.board_controller.widget, 'Game ended', winner.capitalize() + ' wins!')
-
-        self._process_checker_moved(checker, x2, y2)
+            self.on_game_end(winner)
 
         self.board_controller.select_field()
         self.board_controller.set_player_color(self.game.current_player.color)
 
-        self.score_updated.emit(self.game.white_player.score, self.game.black_player.score)
+
+    def message(self, header, text):
+        QMessageBox.information(None, header, text)
 
     def _process_checker_moved(self, checker, x, y):
         pass
+
+    def on_game_end(self, winner):
+        self.message('Game ended', winner.capitalize() + ' wins!')
+
 
 
 class TwoPlayersGameController(GameController):
@@ -94,8 +105,27 @@ class OnePlayerGameController(GameController):
 
 
 class TrainingGameController(OnePlayerGameController):
+    next_task = Signal(str)
+
     def __init__(self, game_file_name, parent=None):
+        with open(game_file_name) as f:
+            data = json.load(f)
+
+        if data.get('game_type') != 'training':
+            raise GameError('This is not a training file')
+
         super(TrainingGameController, self).__init__(game_file_name, Checker.WHITE, parent)
+
+        self.message(data.get('name'), data.get('text'))
+
+        self.data = data
+
+    def _process_checker_moved(self, checker, x, y):
+        if self.game.current_player.color == self.ai_color:
+            self.next_task.emit(self.data.get('next'))
+
+    def on_game_end(self, winner):
+        pass
 
 
 class GAME_TYPE:

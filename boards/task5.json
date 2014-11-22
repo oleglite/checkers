@@ -1,0 +1,23 @@
+{
+    "game_type": "training",
+    "name": "Урок 5",
+    "next": "boards/task6.json",
+    "text": "Можно бить несколько шашек за один ход. Побейте шашки противника.",
+    "checkers": [
+        {
+            "color": "white",
+            "x": 4,
+            "y": 2
+        },
+        {
+            "color": "black",
+            "x": 5,
+            "y": 3
+        },
+        {
+            "color": "black",
+            "x": 5,
+            "y": 5
+        }
+    ]
+}

@@ -1,0 +1,23 @@
+{
+    "game_type": "training",
+    "name": "Урок 2",
+    "next": "boards/task3.json",
+    "text": "Бьют шашки на два поля по диагонали. Побейте одну из шашек противника.",
+    "checkers": [
+        {
+            "color": "white",
+            "x": 3,
+            "y": 3
+        },
+        {
+            "color": "black",
+            "x": 4,
+            "y": 4
+        },
+        {
+            "color": "black",
+            "x": 2,
+            "y": 4
+        }
+    ]
+}
